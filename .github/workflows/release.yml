@@ -18,15 +18,18 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - name: 📥 Checkout Code
+    - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: 🐍 Setup Python
+    - name: Setup Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.x'
 
-    - name: 🛠️ Setup MSVC (Windows)
+    - name: Install Python dependencies
+      run: pip install jinja2
+
+    - name: Setup MSVC (Windows)
       if: matrix.os == 'windows-latest'
       uses: microsoft/setup-msbuild@v1
 
@@ -48,15 +51,10 @@ jobs:
           scripts/windows/setup-deps.bat
           scripts/windows/build-release.bat
         else
-          # Linux path
           chmod +x scripts/linux/*.sh
           scripts/linux/setup-deps.sh
-
-          # Clean slate
           rm -rf build
           mkdir build && cd build
-
-          # Use Ninja on Ubuntu to avoid makefile generator issues
           cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
           cmake --build . --parallel
           cd ..
