@@ -31,7 +31,13 @@ jobs:
 
     - name: Setup MSVC (Windows)
       if: matrix.os == 'windows-latest'
-      uses: microsoft/setup-msbuild@v1
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Setup Visual Studio Environment (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
 
     - name: Determine tag name
       shell: bash
@@ -49,6 +55,7 @@ jobs:
       run: |
         if [ "${RUNNER_OS}" = "Windows" ]; then
           scripts/windows/setup-deps.bat
+          if [ -d "build" ]; then rm -rf build; fi
           scripts/windows/build-release.bat
         else
           chmod +x scripts/linux/*.sh
