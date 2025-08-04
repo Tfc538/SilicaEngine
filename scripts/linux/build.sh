@@ -1,9 +1,26 @@
 #!/bin/bash
 # ============================================================================
 # Caelis - Linux Build Script
+# Author: Tim Gatzke <post@tim-gatzke.de>
 # ============================================================================
 
 set -e  # Exit on any error
+
+# Detect CI environment
+IS_CI=0
+if [[ "$CI" == "1" || "$CI" == "true" ]]; then
+    IS_CI=1
+elif [[ "$GITHUB_ACTIONS" == "true" ]]; then
+    IS_CI=1
+elif [[ "$TRAVIS" == "true" ]]; then
+    IS_CI=1
+elif [[ "$CIRCLECI" == "true" ]]; then
+    IS_CI=1
+elif [[ "$BUILDKITE" == "true" ]]; then
+    IS_CI=1
+elif [[ -n "$JENKINS_URL" ]]; then
+    IS_CI=1
+fi
 
 # Set default build type
 BUILD_TYPE=${1:-Release}
@@ -19,12 +36,20 @@ cd build
 
 # Configure with CMake
 echo "Configuring CMake..."
-cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+if [[ $IS_CI -eq 1 ]]; then
+    cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_VERBOSE_MAKEFILE=ON
+else
+    cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+fi
 
 # Build the project
 echo ""
 echo "Building project..."
-cmake --build . --config $BUILD_TYPE --parallel $(nproc)
+if [[ $IS_CI -eq 1 ]]; then
+    cmake --build . --config $BUILD_TYPE --parallel $(nproc) --verbose
+else
+    cmake --build . --config $BUILD_TYPE --parallel $(nproc)
+fi
 
 echo ""
 echo "============================================================================"

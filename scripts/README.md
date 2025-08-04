@@ -1,178 +1,118 @@
 # Caelis Build Scripts
 
-This directory contains platform-specific build scripts and utilities for the Caelis game engine project.
+**Author:** Tim Gatzke <post@tim-gatzke.de>
 
-## Directory Structure
+This directory contains cross-platform build scripts for the Caelis project.
 
-```
-scripts/
-├── windows/          # Windows-specific scripts (.bat)
-├── linux/            # Linux-specific scripts (.sh)
-├── macos/            # macOS-specific scripts (.sh)
-├── common/           # Cross-platform Python scripts
-└── README.md         # This file
-```
+## CI Environment Support
 
-## Quick Start
+All scripts automatically detect and adapt to CI environments by checking standard environment variables:
 
-### Windows
-```cmd
-# Setup dependencies (first time only)
-scripts\windows\setup-deps.bat
+### Supported CI Environment Variables
 
-# Build the project
-scripts\windows\build.bat
+- `CI=1` or `CI=true` - General CI indicator
+- `GITHUB_ACTIONS=true` - GitHub Actions
+- `TRAVIS=true` - Travis CI
+- `APPVEYOR=True` - AppVeyor
+- `TF_BUILD=True` - Azure DevOps
+- `CIRCLECI=true` - CircleCI
+- `BUILDKITE=true` - Buildkite
+- `JENKINS_URL` - Jenkins (when URL is set)
 
-# Run Fractura game
-scripts\windows\run-fractura.bat
-```
+### CI Behavior Changes
 
-### Linux/macOS
-```bash
-# Make scripts executable (first time only)
-chmod +x scripts/linux/*.sh
-chmod +x scripts/macos/*.sh
+When CI environment is detected, scripts will:
 
-# Setup dependencies (first time only)
-scripts/linux/setup-deps.sh    # or scripts/macos/setup-deps.sh
+- **Disable interactive prompts** (no `pause` in Windows)
+- **Enable verbose output** for better debugging
+- **Skip GUI application execution** (Fractura won't run)
+- **Use appropriate generators** (Unix Makefiles on macOS CI instead of Xcode)
+- **Exit cleanly** without waiting for user input
 
-# Build the project
-scripts/linux/build.sh         # or scripts/macos/build.sh
+## Platform-Specific Scripts
 
-# Run Fractura game
-scripts/linux/run-fractura.sh  # or scripts/macos/run-fractura.sh
-```
+### Windows (`scripts/windows/`)
 
-## Available Scripts
+- `build.bat [Debug|Release]` - Build project
+- `build-debug.bat` - Build debug configuration
+- `build-release.bat` - Build release configuration
+- `clean.bat` - Clean build artifacts
+- `run-fractura.bat [Debug|Release]` - Run Fractura demo
+- `install.bat` - Install project
+- `setup-deps.bat` - Setup dependencies
 
-### Build Scripts
-- **build.sh/build.bat**: Main build script (defaults to Release)
-- **build-debug.sh/build-debug.bat**: Build in Debug mode
-- **build-release.sh/build-release.bat**: Build in Release mode
+### Linux (`scripts/linux/`)
 
-### Utility Scripts
-- **clean.sh/clean.bat**: Remove build directories
-- **install.sh/install.bat**: Install built binaries and libraries
-- **run-fractura.sh/run-fractura.bat**: Run the Fractura example game
-- **setup-deps.sh/setup-deps.bat**: Install required dependencies
+- `build.sh [Debug|Release]` - Build project
+- `build-debug.sh` - Build debug configuration
+- `build-release.sh` - Build release configuration
+- `clean.sh` - Clean build artifacts
+- `run-fractura.sh [Debug|Release]` - Run Fractura demo
+- `install.sh` - Install project
+- `setup-deps.sh` - Setup dependencies
 
-### Cross-Platform Python Scripts
-- **common/format.py**: Format code with clang-format
-- **common/analyze.py**: Run static analysis tools (cppcheck, clang-tidy)
+### macOS (`scripts/macos/`)
+
+- `build.sh [Debug|Release]` - Build project
+- `build-debug.sh` - Build debug configuration
+- `build-release.sh` - Build release configuration
+- `clean.sh` - Clean build artifacts
+- `run-fractura.sh [Debug|Release]` - Run Fractura demo
+- `install.sh` - Install project
+- `setup-deps.sh` - Setup dependencies
 
 ## Usage Examples
 
-### Building
+### Local Development
 ```bash
-# Build in Release mode (default)
-./scripts/linux/build.sh
+# Build release version
+./scripts/linux/build.sh Release
 
-# Build in Debug mode
-./scripts/linux/build.sh Debug
-
-# Or use the convenience scripts
-./scripts/linux/build-debug.sh
-./scripts/linux/build-release.sh
+# Run Fractura demo
+./scripts/linux/run-fractura.sh Release
 ```
 
-### Code Formatting
+### CI Environment
 ```bash
-# Format all source code
-python3 scripts/common/format.py
+# Set CI environment
+export CI=1
 
-# Check if formatting is needed (CI/CD)
-python3 scripts/common/format.py --check
+# Build with verbose output (no interactive prompts)
+./scripts/linux/build.sh Release
 
-# Format specific directory
-python3 scripts/common/format.py -d SilicaEngine/
+# Verify build (Fractura execution will be skipped)
+./scripts/linux/run-fractura.sh Release
 ```
-
-### Static Analysis
-```bash
-# Run all available analysis tools
-python3 scripts/common/analyze.py
-
-# Run specific tool
-python3 scripts/common/analyze.py --tool cppcheck
-python3 scripts/common/analyze.py --tool clang-tidy
-```
-
-### Installation
-```bash
-# Install to default location (./install)
-./scripts/linux/install.sh
-
-# Install to custom location
-./scripts/linux/install.sh Release /usr/local
-```
-
-## Dependencies
-
-### All Platforms
-- CMake (>= 3.16)
-- Git
-- Python 3 (for GLAD generation and common scripts)
 
 ### Windows
-- Visual Studio 2019 or 2022 (Build Tools)
-- Or MinGW-w64 with GCC
+```batch
+REM Build release version
+scripts\windows\build.bat Release
 
-### Linux
-- GCC or Clang
-- OpenGL development libraries
-- X11 development libraries
+REM Run Fractura demo (with pause for user)
+scripts\windows\run-fractura.bat Release
+```
 
-### macOS
-- Xcode Command Line Tools
-- Homebrew (recommended for package management)
+### Windows CI
+```batch
+REM Set CI environment
+set CI=1
 
-## Build Configuration
+REM Build with verbose output (no pauses)
+scripts\windows\build.bat Release
 
-The project uses CMake with the following features:
-- **Build Types**: Debug, Release
-- **C++ Standard**: C++17
-- **Dependencies**: OpenGL, GLFW, GLM, spdlog, GLAD
-- **Output**: 
-  - Libraries in `build/lib/`
-  - Executables in `build/bin/`
+REM Verify build (no GUI execution)
+scripts\windows\run-fractura.bat Release
+```
 
-## Troubleshooting
+## Common Directories
 
-### Common Issues
+- `scripts/common/` - Shared Python utilities for analysis and formatting
 
-1. **CMake not found**
-   - Install CMake and add to PATH
-   - Run setup-deps script first
+## Notes
 
-2. **OpenGL libraries missing** (Linux)
-   - Install mesa development packages
-   - Run: `sudo apt install libgl1-mesa-dev`
-
-3. **Build fails with dependency errors**
-   - CMake will automatically download dependencies via FetchContent
-   - Ensure internet connection is available
-   - Check firewall/proxy settings
-
-4. **Python not found** (Windows)
-   - Install Python from python.org
-   - Add Python to PATH
-   - Update Python path in root CMakeLists.txt if needed
-
-### Performance Tips
-
-- Use `-j` flag for parallel builds: `cmake --build . --parallel`
-- On Windows, use Visual Studio generator for better performance
-- On Linux/macOS, consider using Ninja generator: `cmake .. -G Ninja`
-
-## Contributing
-
-When adding new scripts:
-1. Follow the existing naming conventions
-2. Add appropriate error handling
-3. Include help/usage information
-4. Test on the target platform
-5. Update this README
-
-## License
-
-These scripts are part of the Caelis project and follow the same license terms.
+- All scripts automatically detect the platform and adjust behavior accordingly
+- Build scripts create executables in `build/bin/` directory
+- Clean scripts remove both `build/` and `install/` directories
+- CI detection ensures scripts work seamlessly in automated environments
+- Scripts preserve original behavior for local development while adding CI compatibility

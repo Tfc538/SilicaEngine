@@ -1,10 +1,32 @@
 #!/bin/bash
 # ============================================================================
 # Caelis - Run Fractura (macOS)
+# Author: Tim Gatzke <post@tim-gatzke.de>
 # ============================================================================
 
+# Detect CI environment
+IS_CI=0
+if [[ "$CI" == "1" || "$CI" == "true" ]]; then
+    IS_CI=1
+elif [[ "$GITHUB_ACTIONS" == "true" ]]; then
+    IS_CI=1
+elif [[ "$TRAVIS" == "true" ]]; then
+    IS_CI=1
+elif [[ "$CIRCLECI" == "true" ]]; then
+    IS_CI=1
+elif [[ "$BUILDKITE" == "true" ]]; then
+    IS_CI=1
+elif [[ -n "$JENKINS_URL" ]]; then
+    IS_CI=1
+fi
+
 BUILD_TYPE=${1:-Release}
-EXECUTABLE_PATH="build/bin/$BUILD_TYPE/Fractura"
+# Adjust path based on CI environment
+if [[ $IS_CI -eq 1 ]]; then
+    EXECUTABLE_PATH="build/bin/Fractura"
+else
+    EXECUTABLE_PATH="build/bin/$BUILD_TYPE/Fractura"
+fi
 
 echo ""
 echo "============================================================================"
@@ -15,6 +37,12 @@ if [ ! -f "$EXECUTABLE_PATH" ]; then
     echo "ERROR: Fractura executable not found at $EXECUTABLE_PATH"
     echo "Please build the project first using build.sh"
     exit 1
+fi
+
+if [[ $IS_CI -eq 1 ]]; then
+    echo "Skipping Fractura execution in CI environment"
+    echo "Executable exists at: $EXECUTABLE_PATH"
+    exit 0
 fi
 
 echo "Starting Fractura..."

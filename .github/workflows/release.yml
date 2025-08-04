@@ -2,78 +2,63 @@ name: 🚀 Build & Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']
 
 jobs:
-  build_and_release:
+  build:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
-    - name: 📥 Checkout Code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-    - name: 🐍 Setup Python
-      uses: actions/setup-python@v5
+    - uses: actions/setup-python@v5
       with:
         python-version: '3.x'
 
-    - name: 🔧 Build (Windows)
+    - uses: microsoft/setup-msbuild@v1
       if: matrix.os == 'windows-latest'
-      run: |
-        scripts/windows/setup-deps.bat
-        scripts/windows/build-release.bat
 
-    - name: 🔧 Build (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        chmod +x scripts/linux/*.sh
-        scripts/linux/setup-deps.sh
-
-        # Configure explicitly with Unix Makefiles to avoid missing-variable errors
-        cmake -S . -B build \
-          -G "Unix Makefiles" \
-          -DCMAKE_BUILD_TYPE=Release
-
-        cmake --build build --config Release
-
+    - name: Configure & build
       shell: bash
-
-    - name: 📦 Package Artifacts (Windows)
-      if: matrix.os == 'windows-latest'
+      env:
+        CI: "1"
       run: |
-        mkdir dist
-        mkdir dist\bin
-        mkdir dist\lib
-        mkdir dist\include
+        if [ "$RUNNER_OS" = "Windows" ]; then
+          scripts/windows/setup-deps.bat
+          scripts/windows/build-release.bat
+        else
+          chmod +x scripts/linux/*.sh
+          scripts/linux/setup-deps.sh
+          rm -rf build
+          cmake -S . -B build -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release --parallel
+        fi
 
-        copy build\bin\Fractura.exe dist\bin\
-        copy build\lib\SilicaEngine.lib dist\lib\
-        xcopy SilicaEngine\include dist\include /E /I /Y
-
-        powershell -Command "Compress-Archive -Path dist -DestinationPath Caelis-windows-${{ github.ref_name }}.zip"
-
-    - name: 📦 Package Artifacts (Linux)
-      if: matrix.os == 'ubuntu-latest'
+    # 5️⃣  Package results
+    - name: Package artifacts
+      shell: bash
       run: |
         mkdir -p dist/bin dist/lib dist/include
 
-        cp build/bin/Fractura dist/bin/
-        cp build/lib/libSilicaEngine.a dist/lib/
-        cp -r SilicaEngine/include dist/include
+        if [ "$RUNNER_OS" = "Windows" ]; then
+          cp build\\bin\\Fractura.exe dist\\bin\\
+          cp build\\lib\\SilicaEngine.lib dist\\lib\\
+          zipName="Caelis-windows-${GITHUB_REF_NAME}.zip"
+          powershell -Command "Compress-Archive -Path dist -DestinationPath $zipName"
+        else
+          cp build/bin/Fractura dist/bin/
+          cp build/lib/libSilicaEngine.a dist/lib/
+          zipName="Caelis-linux-${GITHUB_REF_NAME}.zip"
+          zip -r $zipName dist
+        fi
+        echo "ZIP_NAME=$zipName" >> $GITHUB_ENV
 
-        zip -r Caelis-linux-${{ github.ref_name }}.zip dist
-
-      shell: bash
-
-    - name: 🚀 Publish Release Assets
-      uses: softprops/action-gh-release@v2
+    # 6️⃣  Attach to release
+    - uses: softprops/action-gh-release@v2
       with:
-        files: |
-          Caelis-windows-${{ github.ref_name }}.zip
-          Caelis-linux-${{ github.ref_name }}.zip
+        files: ${{ env.ZIP_NAME }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
