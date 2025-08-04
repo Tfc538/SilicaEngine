@@ -6,43 +6,59 @@ on:
       - 'v*'
 
 jobs:
-  release:
-    name: Build on Windows and Upload
-    runs-on: windows-latest
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
 
     steps:
-    - name: 🔄 Checkout Code
+    - name: 📥 Checkout Code
       uses: actions/checkout@v4
 
     - name: 🐍 Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.x'
+        python-version: '3.11'
 
-    - name: ⚙️ Run Setup Script
-      run: scripts/windows/setup-deps.bat
+    - name: 🛠️ Setup & Build (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        scripts/windows/setup-deps.bat
+        scripts/windows/build-release.bat
 
-    - name: 🛠️ Run Build Script
-      run: scripts/windows/build-release.bat
-      env:
-        PYTHON_EXECUTABLE: python  # Ensures Python is visible to CMake and GLAD
+    - name: 🛠️ Setup & Build (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        chmod +x scripts/linux/*.sh
+        scripts/linux/setup-deps.sh
+        scripts/linux/build-release.sh
 
-    - name: 📦 Package Build Output
+    - name: 📦 Package Artifacts
       run: |
         mkdir dist
         mkdir dist/bin
         mkdir dist/lib
         mkdir dist/include
 
-        copy build\\bin\\Fractura.exe dist\\bin\\
-        copy build\\lib\\SilicaEngine.lib dist\\lib\\
-        xcopy SilicaEngine\\include dist\\include /s /i /y
+        if [ "${{ runner.os }}" == "Windows" ]; then
+          copy build\\bin\\Fractura.exe dist\\bin\\
+          copy build\\lib\\SilicaEngine.lib dist\\lib\\
+        else
+          cp build/bin/Fractura dist/bin/
+          cp build/lib/libSilicaEngine.a dist/lib/
+        fi
 
-        powershell Compress-Archive -Path dist -DestinationPath SilicaEngine-${{ github.ref_name }}.zip
+        cp -r SilicaEngine/include dist/include
 
-    - name: 🚀 Publish GitHub Release
+        zip -r SilicaEngine-${{ runner.os }}-${{ github.ref_name }}.zip dist
+
+      shell: bash
+
+    - name: 🚀 Upload GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        files: SilicaEngine-${{ github.ref_name }}.zip
+        files: SilicaEngine-${{ runner.os }}-${{ github.ref_name }}.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
