@@ -24,9 +24,16 @@
 
 namespace SilicaEngine {
 
-    // Static member initialization
-    std::string Screenshot::s_DefaultDirectory = "./screenshots/";
-    std::mutex Screenshot::s_DefaultDirectoryMutex;
+    // Static member variables as function-local statics to avoid ODR violations
+    std::string& Screenshot::GetDefaultDirectoryInternal() {
+        static std::string s_DefaultDirectory = "./screenshots/";
+        return s_DefaultDirectory;
+    }
+    
+    std::mutex& Screenshot::GetDefaultDirectoryMutex() {
+        static std::mutex s_DefaultDirectoryMutex;
+        return s_DefaultDirectoryMutex;
+    }
 
     ScreenshotResult Screenshot::Capture(const std::string& filename, const ScreenshotConfig& config) {
         ScreenshotResult result;
@@ -142,9 +149,9 @@ namespace SilicaEngine {
 
     ScreenshotResult Screenshot::QuickCapture(ScreenshotFormat format, const std::string& prefix) {
         std::string filename = GenerateTimestampedFilename(prefix, format);
-        std::string fullPath = s_DefaultDirectory + filename;
+        std::string fullPath = GetDefaultDirectoryInternal() + filename;
         
-        EnsureDirectoryExists(s_DefaultDirectory);
+        EnsureDirectoryExists(GetDefaultDirectoryInternal());
         
         ScreenshotConfig config;
         config.format = format;
@@ -215,16 +222,16 @@ namespace SilicaEngine {
     }
 
     void Screenshot::SetDefaultDirectory(const std::string& directory) {
-        std::lock_guard<std::mutex> lock(s_DefaultDirectoryMutex);
-        s_DefaultDirectory = directory;
-        if (!s_DefaultDirectory.empty() && s_DefaultDirectory.back() != '/' && s_DefaultDirectory.back() != '\\') {
-            s_DefaultDirectory += "/";
+        std::lock_guard<std::mutex> lock(GetDefaultDirectoryMutex());
+        GetDefaultDirectoryInternal() = directory;
+        if (!GetDefaultDirectoryInternal().empty() && GetDefaultDirectoryInternal().back() != '/' && GetDefaultDirectoryInternal().back() != '\\') {
+            GetDefaultDirectoryInternal() += "/";
         }
     }
 
     const std::string& Screenshot::GetDefaultDirectory() {
-        std::lock_guard<std::mutex> lock(s_DefaultDirectoryMutex);
-        return s_DefaultDirectory;
+        std::lock_guard<std::mutex> lock(GetDefaultDirectoryMutex());
+        return GetDefaultDirectoryInternal();
     }
 
     std::string Screenshot::GenerateTimestampedFilename(const std::string& prefix,
@@ -411,8 +418,22 @@ namespace SilicaEngine {
         auto now = std::chrono::system_clock::now();
         auto time_t = std::chrono::system_clock::to_time_t(now);
         
+        // Use thread-safe localtime alternative
+        std::tm tm{};
+        #ifdef _WIN32
+            if (localtime_s(&tm, &time_t) != 0) {
+                SE_WARN("Failed to convert time_t to tm structure");
+                return "screenshot"; // fallback filename
+            }
+        #else
+            if (localtime_r(&time_t, &tm) == nullptr) {
+                SE_WARN("Failed to convert time_t to tm structure");
+                return "screenshot"; // fallback filename
+            }
+        #endif
+        
         std::stringstream ss;
-        ss << std::put_time(std::localtime(&time_t), format.c_str());
+        ss << std::put_time(&tm, format.c_str());
         return ss.str();
     }
 

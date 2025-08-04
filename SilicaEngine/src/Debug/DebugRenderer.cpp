@@ -294,6 +294,7 @@ namespace SilicaEngine {
     }
     
     size_t DebugRenderer::GetPrimitiveCount() {
+        std::lock_guard<std::mutex> lock(s_Mutex);
         return s_lines.size() + s_points.size() + s_texts.size() + s_boxes.size() + s_spheres.size();
     }
     
@@ -359,22 +360,78 @@ namespace SilicaEngine {
                 FragColor = vColor;
             }
         )";
-        
-        // Create simple line shader manually for now
-        auto shader = std::make_shared<Shader>();
-        if (shader->CreateFromString(lineVertexShader, lineFragmentShader, "")) {
-            s_lineShader = shader;
+        // Point shader (point size)
+        const char* pointVertexShader = R"(
+            #version 330 core
+            layout (location = 0) in vec3 aPos;
+            layout (location = 1) in vec4 aColor;
+            uniform mat4 uViewProjection;
+            uniform float uPointSize;
+            out vec4 vColor;
+            void main() {
+                gl_Position = uViewProjection * vec4(aPos, 1.0);
+                gl_PointSize = uPointSize;
+                vColor = aColor;
+            }
+        )";
+        const char* pointFragmentShader = R"(
+            #version 330 core
+            in vec4 vColor;
+            out vec4 FragColor;
+            void main() {
+                FragColor = vColor;
+            }
+        )";
+        // Solid shader (for filled primitives)
+        const char* solidVertexShader = lineVertexShader;
+        const char* solidFragmentShader = lineFragmentShader;
+        // Text shader (texture sampling)
+        const char* textVertexShader = R"(
+            #version 330 core
+            layout (location = 0) in vec3 aPos;
+            layout (location = 1) in vec2 aUV;
+            layout (location = 2) in vec4 aColor;
+            uniform mat4 uViewProjection;
+            out vec2 vUV;
+            out vec4 vColor;
+            void main() {
+                gl_Position = uViewProjection * vec4(aPos, 1.0);
+                vUV = aUV;
+                vColor = aColor;
+            }
+        )";
+        const char* textFragmentShader = R"(
+            #version 330 core
+            in vec2 vUV;
+            in vec4 vColor;
+            uniform sampler2D uFontTexture;
+            out vec4 FragColor;
+            void main() {
+                float alpha = texture(uFontTexture, vUV).r;
+                FragColor = vec4(vColor.rgb, vColor.a * alpha);
+            }
+        )";
+        // Create shaders
+        auto lineShader = std::make_shared<Shader>();
+        if (lineShader->CreateFromString(lineVertexShader, lineFragmentShader, "")) {
+            s_lineShader = lineShader;
         }
-        if (!s_lineShader) {
-            SE_ERROR("Failed to create line shader");
+        auto pointShader = std::make_shared<Shader>();
+        if (pointShader->CreateFromString(pointVertexShader, pointFragmentShader, "")) {
+            s_pointShader = pointShader;
+        }
+        auto solidShader = std::make_shared<Shader>();
+        if (solidShader->CreateFromString(solidVertexShader, solidFragmentShader, "")) {
+            s_solidShader = solidShader;
+        }
+        auto textShader = std::make_shared<Shader>();
+        if (textShader->CreateFromString(textVertexShader, textFragmentShader, "")) {
+            s_textShader = textShader;
+        }
+        if (!s_lineShader || !s_pointShader || !s_solidShader || !s_textShader) {
+            SE_ERROR("Failed to create one or more debug shaders");
             return false;
         }
-        
-        // For now, reuse line shader for other primitives
-        s_pointShader = s_lineShader;
-        s_solidShader = s_lineShader;
-        s_textShader = s_lineShader;
-        
         return true;
     }
     

@@ -421,7 +421,8 @@ namespace SilicaEngine {
         for (auto& [path, texture] : s_Instance->textures) {
             if (s_Instance->HasFileChanged(path)) {
                 SE_INFO("Reloading changed texture: {}", path);
-                auto newTexture = s_Instance->LoadTextureInternal(path, TextureParams{});
+                TextureParams params = texture ? texture->GetParams() : TextureParams{};
+                auto newTexture = s_Instance->LoadTextureInternal(path, params);
                 if (newTexture) {
                     s_Instance->textures[path] = newTexture;
                 }

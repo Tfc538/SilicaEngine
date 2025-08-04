@@ -45,6 +45,7 @@ namespace SilicaEngine {
         float rotationSpeed = 0.1f;                 // Radians per pixel
         float zoomSpeed = 2.0f;                     // Zoom sensitivity
         float mouseWheelZoomSpeed = 1.0f;           // Mouse wheel zoom sensitivity
+        float orbitalRotationMultiplier = 10.0f;   // Orbital camera rotation speed multiplier
         
         // First person / Free mode settings
         float maxPitch = 89.0f;                     // Maximum pitch angle in degrees
@@ -189,6 +190,7 @@ namespace SilicaEngine {
         glm::vec3 ScreenToWorldRay(const glm::vec2& screenPos, const glm::vec2& screenSize) const;
 
     private:
+        
         CameraConfig m_Config;
         
         // Transform

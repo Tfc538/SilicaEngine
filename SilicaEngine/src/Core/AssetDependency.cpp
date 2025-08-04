@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <sstream>
 #include <shared_mutex>
+#include <stack>
 
 namespace SilicaEngine {
 
@@ -29,25 +30,9 @@ namespace SilicaEngine {
         {
             std::unique_lock<std::shared_mutex> lock(m_dependencyMutex);
             
-            // Check for circular dependencies before adding
-            if (dependent == dependency) {
-                SE_ERROR("Self-dependency detected for asset {}", dependent);
-                return;
-            }
-            
-            // Check if adding this dependency would create a circular dependency
-            auto tempDeps = m_dependencies;
-            tempDeps.insert(dep);
-            
-            // Create temporary lookup maps for circular dependency check
+            // Simulate the insertion for the check
             auto tempDependentToSubjects = m_dependentToSubjects;
-            auto tempSubjectToDependents = m_subjectToDependents;
-            
-            // Update temporary lookup maps
             tempDependentToSubjects[dependent].insert(dependency);
-            tempSubjectToDependents[dependency].insert(dependent);
-            
-            // Check for circular dependency using temporary data
             std::unordered_set<ResourceID> visited;
             std::unordered_set<ResourceID> recursionStack;
             if (HasCircularDependencyRecursive(dependent, visited, recursionStack, tempDependentToSubjects)) {
@@ -205,11 +190,9 @@ namespace SilicaEngine {
     
     bool AssetDependencyManager::HasCircularDependency(ResourceID asset) const {
         std::shared_lock<std::shared_mutex> lock(m_dependencyMutex);
-        
         std::unordered_set<ResourceID> visited;
         std::unordered_set<ResourceID> recursionStack;
-        
-        return HasCircularDependencyRecursive(asset, visited, recursionStack);
+        return HasCircularDependencyRecursive(asset, visited, recursionStack, m_dependentToSubjects);
     }
     
     std::vector<ResourceID> AssetDependencyManager::GetLoadingOrder(const std::vector<ResourceID>& assets) const {
@@ -231,53 +214,30 @@ namespace SilicaEngine {
     }
     
     AssetDependencyManager::DependencyStats AssetDependencyManager::GetStatistics() const {
-        std::shared_lock<std::shared_mutex> lock(m_dependencyMutex);
-        
-        DependencyStats stats = {};
-        stats.totalDependencies = m_dependencies.size();
-        stats.assetsWithDependencies = m_dependentToSubjects.size();
-        
-        for (const auto& dep : m_dependencies) {
-            switch (dep.type) {
-                case DependencyType::Required:
-                    stats.requiredDependencies++;
-                    break;
-                case DependencyType::Optional:
-                    stats.optionalDependencies++;
-                    break;
-                case DependencyType::Runtime:
-                    stats.runtimeDependencies++;
-                    break;
-            }
-        }
-        
-        // Count orphaned assets (assets with no dependents)
+        DependencyStats stats{};
         std::unordered_set<ResourceID> allAssets;
-        for (const auto& [asset, _] : m_dependentToSubjects) {
-            allAssets.insert(asset);
+        for (const auto& dep : m_dependencies) {
+            allAssets.insert(dep.dependentAsset);
+            allAssets.insert(dep.dependencyAsset);
         }
-        for (const auto& [asset, _] : m_subjectToDependents) {
-            allAssets.insert(asset);
-        }
-        
         for (ResourceID asset : allAssets) {
             auto it = m_subjectToDependents.find(asset);
             if (it == m_subjectToDependents.end() || it->second.empty()) {
                 stats.orphanedAssets++;
             }
         }
-        
-        // Count circular dependencies
-        std::unordered_set<ResourceID> checked;
+        // Tarjan's SCC for all cycles
+        std::unordered_map<ResourceID, int> indexMap, lowlinkMap;
+        std::stack<ResourceID> stack;
+        std::unordered_set<ResourceID> onStack;
+        int index = 0;
+        std::vector<std::vector<ResourceID>> sccs;
         for (ResourceID asset : allAssets) {
-            if (checked.find(asset) == checked.end()) {
-                if (HasCircularDependency(asset)) {
-                    stats.circularDependencies++;
-                }
-                checked.insert(asset);
+            if (indexMap.find(asset) == indexMap.end()) {
+                FindStronglyConnectedComponents(m_dependentToSubjects, indexMap, lowlinkMap, stack, onStack, index, sccs, asset);
             }
         }
-        
+        stats.circularDependencies = static_cast<int>(sccs.size());
         return stats;
     }
     
@@ -326,49 +286,67 @@ namespace SilicaEngine {
         }
     }
     
-    bool AssetDependencyManager::HasCircularDependencyRecursive(ResourceID asset, 
-                                                               std::unordered_set<ResourceID>& visited,
-                                                               std::unordered_set<ResourceID>& recursionStack) const {
-        visited.insert(asset);
-        recursionStack.insert(asset);
-        
-        auto it = m_dependentToSubjects.find(asset);
-        if (it != m_dependentToSubjects.end()) {
-            for (ResourceID dependency : it->second) {
-                if (visited.find(dependency) == visited.end()) {
-                    if (HasCircularDependencyRecursive(dependency, visited, recursionStack)) {
-                        return true;
-                    }
-                } else if (recursionStack.find(dependency) != recursionStack.end()) {
-                    return true; // Back edge found - circular dependency
+    // Tarjan's SCC for cycle detection
+    void FindStronglyConnectedComponents(
+        const std::unordered_map<ResourceID, std::unordered_set<ResourceID>>& graph,
+        std::unordered_map<ResourceID, int>& indexMap,
+        std::unordered_map<ResourceID, int>& lowlinkMap,
+        std::stack<ResourceID>& stack,
+        std::unordered_set<ResourceID>& onStack,
+        int& index,
+        std::vector<std::vector<ResourceID>>& sccs,
+        ResourceID v)
+    {
+        indexMap[v] = index;
+        lowlinkMap[v] = index;
+        ++index;
+        stack.push(v);
+        onStack.insert(v);
+
+        auto it = graph.find(v);
+        if (it != graph.end()) {
+            for (ResourceID w : it->second) {
+                if (indexMap.find(w) == indexMap.end()) {
+                    FindStronglyConnectedComponents(graph, indexMap, lowlinkMap, stack, onStack, index, sccs, w);
+                    lowlinkMap[v] = std::min(lowlinkMap[v], lowlinkMap[w]);
+                } else if (onStack.count(w)) {
+                    lowlinkMap[v] = std::min(lowlinkMap[v], indexMap[w]);
                 }
             }
         }
-        
-        recursionStack.erase(asset);
-        return false;
+
+        if (lowlinkMap[v] == indexMap[v]) {
+            std::vector<ResourceID> scc;
+            ResourceID w;
+            do {
+                w = stack.top(); stack.pop();
+                onStack.erase(w);
+                scc.push_back(w);
+            } while (w != v);
+            if (scc.size() > 1) sccs.push_back(scc); // Only cycles
+        }
     }
-    
-    bool AssetDependencyManager::HasCircularDependencyRecursive(ResourceID asset, 
-                                                               std::unordered_set<ResourceID>& visited,
-                                                               std::unordered_set<ResourceID>& recursionStack,
-                                                               const std::unordered_map<ResourceID, std::unordered_set<ResourceID>>& dependentToSubjects) const {
+
+    // Refactored recursive helper
+    bool HasCircularDependencyRecursive(
+        ResourceID asset,
+        std::unordered_set<ResourceID>& visited,
+        std::unordered_set<ResourceID>& recursionStack,
+        const std::unordered_map<ResourceID, std::unordered_set<ResourceID>>& dependentToSubjects)
+    {
         visited.insert(asset);
         recursionStack.insert(asset);
-        
         auto it = dependentToSubjects.find(asset);
         if (it != dependentToSubjects.end()) {
             for (ResourceID dependency : it->second) {
                 if (visited.find(dependency) == visited.end()) {
-                    if (HasCircularDependencyRecursive(dependency, visited, recursionStack, dependentToSubjects)) {
+                    if (HasCircularDependencyRecursive(dependency, visited, recursionStack, dependentToSubjects))
                         return true;
-                    }
                 } else if (recursionStack.find(dependency) != recursionStack.end()) {
-                    return true; // Back edge found - circular dependency
+                    return true;
                 }
             }
         }
-        
         recursionStack.erase(asset);
         return false;
     }

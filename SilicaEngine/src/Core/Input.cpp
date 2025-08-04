@@ -125,11 +125,12 @@ namespace SilicaEngine {
                                     bindingActive = gamepads[binding.gamepadId].buttons[binding.code];
                                     bindingValue = bindingActive ? 1.0f : 0.0f;
                                 } else {
-                                    // Axis input (map axis codes to appropriate range)
-                                    int axisCode = binding.code - (GLFW_GAMEPAD_BUTTON_LAST + 1);
-                                    if (axisCode >= 0 && axisCode <= GLFW_GAMEPAD_AXIS_LAST) {
-                                        bindingValue = gamepads[binding.gamepadId].axes[axisCode];
-                                        bindingActive = std::abs(bindingValue) > 0.0f;
+                                    if (binding.code > GLFW_GAMEPAD_BUTTON_LAST) {
+                                        int axisCode = binding.code - (GLFW_GAMEPAD_BUTTON_LAST + 1);
+                                        if (axisCode >= 0 && axisCode <= GLFW_GAMEPAD_AXIS_LAST) {
+                                            bindingValue = gamepads[binding.gamepadId].axes[axisCode];
+                                            bindingActive = std::abs(bindingValue) > 0.0f;
+                                        }
                                     }
                                 }
                             }
@@ -464,10 +465,32 @@ namespace SilicaEngine {
             if (tokens.size() >= 5) {
                 InputBinding binding;
                 binding.actionName = tokens[0];
-                binding.source = static_cast<InputSource>(std::stoi(tokens[1]));
-                binding.code = std::stoi(tokens[2]);
-                binding.gamepadId = std::stoi(tokens[3]);
-                binding.context = static_cast<InputContext>(std::stoi(tokens[4]));
+                
+                // Validate and parse integer values safely
+                try {
+                    int sourceValue = std::stoi(tokens[1]);
+                    int codeValue = std::stoi(tokens[2]);
+                    int gamepadIdValue = std::stoi(tokens[3]);
+                    int contextValue = std::stoi(tokens[4]);
+                    
+                    // Validate ranges for enum values
+                    if (sourceValue < 0 || sourceValue > static_cast<int>(InputSource::Gamepad) ||
+                        codeValue < 0 || 
+                        gamepadIdValue < 0 || gamepadIdValue >= 16 || // GLFW supports max 16 gamepads
+                        contextValue < 0 || contextValue > static_cast<int>(InputContext::All)) {
+                        SE_WARN("Invalid input binding values in config: source={}, code={}, gamepadId={}, context={}", 
+                                sourceValue, codeValue, gamepadIdValue, contextValue);
+                        continue; // Skip this invalid binding
+                    }
+                    
+                    binding.source = static_cast<InputSource>(sourceValue);
+                    binding.code = codeValue;
+                    binding.gamepadId = gamepadIdValue;
+                    binding.context = static_cast<InputContext>(contextValue);
+                } catch (const std::exception& e) {
+                    SE_WARN("Failed to parse input binding integers: {}. Skipping binding.", e.what());
+                    continue; // Skip this invalid binding
+                }
                 
                 s_Manager->BindAction(binding.actionName, binding);
             }

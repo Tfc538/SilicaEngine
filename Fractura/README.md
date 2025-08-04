@@ -101,7 +101,7 @@
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd Caelis/Fractura
+cd Fractura
 
 # Build (Windows)
 .\scripts\windows\build.bat

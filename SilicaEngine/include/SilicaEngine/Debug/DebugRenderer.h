@@ -22,8 +22,6 @@
 
 namespace SilicaEngine {
 
-    class Shader;
-
     /// Debug render mode for different visualization types
     enum class DebugRenderMode {
         Lines,          // Line segments
@@ -82,6 +80,10 @@ namespace SilicaEngine {
     };
 
     /// Debug rendering system for development visualization
+    /// 
+    /// Thread Safety: This class uses internal mutexes to protect static containers.
+    /// Initialize(), Shutdown(), and all drawing functions are thread-safe.
+    /// However, the actual OpenGL rendering calls must be made from the main thread.
     class DebugRenderer {
     public:
         /// Initialize the debug renderer

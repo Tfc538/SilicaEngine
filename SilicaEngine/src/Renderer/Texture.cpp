@@ -71,6 +71,10 @@ namespace SilicaEngine {
         m_Filepath = filepath;
         m_Params = params;
         
+        // Thread-safe texture loading: use mutex to protect global stbi state
+        static std::mutex s_StbiMutex;
+        std::lock_guard<std::mutex> lock(s_StbiMutex);
+        
         // Set STB to flip images vertically (OpenGL expects bottom-left origin)
         stbi_set_flip_vertically_on_load(true);
         
@@ -164,9 +168,16 @@ namespace SilicaEngine {
         m_Params.minFilter = minFilter;
         m_Params.magFilter = magFilter;
         
+        // Save currently bound texture to restore after parameter changes
+        GLint previousTexture;
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture);
+        
         glBindTexture(GL_TEXTURE_2D, m_TextureID);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GetGLFilter(minFilter));
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GetGLFilter(magFilter));
+        
+        // Restore previous texture binding
+        glBindTexture(GL_TEXTURE_2D, previousTexture);
     }
 
     void Texture::SetWrap(TextureWrap wrapS, TextureWrap wrapT) {
@@ -175,9 +186,16 @@ namespace SilicaEngine {
         m_Params.wrapS = wrapS;
         m_Params.wrapT = wrapT;
         
+        // Save currently bound texture to restore after parameter changes
+        GLint previousTexture;
+        glGetIntegerv(GL_TEXTURE_BINDING_2D, &previousTexture);
+        
         glBindTexture(GL_TEXTURE_2D, m_TextureID);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GetGLWrap(wrapS));
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GetGLWrap(wrapT));
+        
+        // Restore previous texture binding
+        glBindTexture(GL_TEXTURE_2D, previousTexture);
     }
 
     std::shared_ptr<Texture> Texture::Create(const std::string& filepath, const TextureParams& params) {

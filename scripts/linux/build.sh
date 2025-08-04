@@ -45,7 +45,7 @@ fi
 # Get number of CPU cores for parallel build
 CORES=$(nproc)
 echo ""
-echo "Building project with \"$CORES\" cores..."
+echo "Building project with $CORES cores..."
 if [[ $IS_CI -eq 1 ]]; then
     cmake --build . --config $BUILD_TYPE --parallel "$CORES" --verbose
 else

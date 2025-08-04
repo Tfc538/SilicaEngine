@@ -17,12 +17,52 @@
 #include <algorithm>
 #include <unordered_map> // Added for noise caching
 
+// Platform-specific includes for process ID functions
+#ifdef _WIN32
+    #include <windows.h>
+#elif defined(__unix__) || defined(__APPLE__)
+    #include <unistd.h>
+#endif
+
 /// Animation modes for the cube garden
 enum class AnimationMode {
     Wave,      // Sine wave ripples
     Pulse,     // Radial pulsing from center
     Orbit,     // Cubes orbit around invisible points
     Chaos      // Random chaotic movement
+};
+
+/// Hash-based noise cache key for efficient caching
+struct NoiseCacheKey {
+    int posX, posY, posZ;
+    int timeStep;
+    char component; // 'x', 'y', 'z', 's' (scale), 'c' (color)
+    
+    NoiseCacheKey(const glm::vec3& pos, float time, char comp) 
+        : posX(static_cast<int>(pos.x * 1000))
+        , posY(static_cast<int>(pos.y * 1000))
+        , posZ(static_cast<int>(pos.z * 1000))
+        , timeStep(static_cast<int>(time * 1000))
+        , component(comp) {}
+    
+    bool operator==(const NoiseCacheKey& other) const {
+        return posX == other.posX && posY == other.posY && posZ == other.posZ && 
+               timeStep == other.timeStep && component == other.component;
+    }
+};
+
+/// Custom hash function for NoiseCacheKey
+struct NoiseCacheKeyHash {
+    std::size_t operator()(const NoiseCacheKey& key) const {
+        std::size_t h1 = std::hash<int>{}(key.posX);
+        std::size_t h2 = std::hash<int>{}(key.posY);
+        std::size_t h3 = std::hash<int>{}(key.posZ);
+        std::size_t h4 = std::hash<int>{}(key.timeStep);
+        std::size_t h5 = std::hash<char>{}(key.component);
+        
+        // Combine hashes using prime numbers for better distribution
+        return h1 ^ (h2 * 31) ^ (h3 * 37) ^ (h4 * 41) ^ (h5 * 43);
+    }
 };
 
 /// Individual cube in the garden
@@ -225,7 +265,7 @@ private:
     std::vector<GardenCube> m_GardenCubes;
     
     // Noise caching for Chaos mode performance
-    std::unordered_map<std::string, float> m_NoiseCache;
+    std::unordered_map<NoiseCacheKey, float, NoiseCacheKeyHash> m_NoiseCache;
     float m_LastCacheTime = 0.0f;
     static constexpr float CACHE_DURATION = 0.1f; // Cache for 100ms
     
@@ -269,23 +309,41 @@ private:
         try {
             // Try to get a valid seed from random_device
             unsigned int seed = rd();
-            if (seed == 0) {
-                // If random_device returns 0, it might be broken on this platform
-                throw std::runtime_error("Random device returned 0");
+            // Check for more invalid or suspicious values
+            if (seed == 0 || seed == 0xFFFFFFFF || seed == 0x12345678 || seed == 0xDEADBEEF || 
+                seed == 1 || seed == static_cast<unsigned int>(-1)) {
+                // These values suggest the random_device might be broken or deterministic
+                throw std::runtime_error("Random device returned suspicious value: " + std::to_string(seed));
             }
             gen.seed(seed);
             SE_APP_INFO("Using random_device seed: {}", seed);
         } catch (const std::exception& e) {
-            // Fallback to time-based seed with additional entropy
+            // Enhanced fallback with multiple entropy sources
             auto now = std::chrono::high_resolution_clock::now();
             auto timeSeed = static_cast<unsigned int>(now.time_since_epoch().count());
             
-            // Add additional entropy from system info
-            auto pid = static_cast<unsigned int>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
-            unsigned int fallbackSeed = timeSeed ^ pid ^ 0xDEADBEEF;
+            // Add additional entropy from various system sources
+            auto threadId = static_cast<unsigned int>(std::hash<std::thread::id>{}(std::this_thread::get_id()));
+            // Get process ID in a portable way
+            unsigned int processId = 12345; // Default fallback
+            #ifdef _WIN32
+                processId = static_cast<unsigned int>(GetCurrentProcessId());
+            #elif defined(__unix__) || defined(__APPLE__)
+                processId = static_cast<unsigned int>(getpid());
+            #endif
+            auto clockTick = static_cast<unsigned int>(std::chrono::steady_clock::now().time_since_epoch().count());
+            auto stackAddr = static_cast<unsigned int>(reinterpret_cast<uintptr_t>(&seed) & 0xFFFFFFFF);
+            
+            // Mix entropy sources more robustly
+            unsigned int fallbackSeed = timeSeed;
+            fallbackSeed ^= (threadId << 16) | (threadId >> 16);   // Rotate and XOR
+            fallbackSeed ^= (processId << 8) | (processId >> 24);  // Different rotation
+            fallbackSeed ^= clockTick;
+            fallbackSeed ^= (stackAddr << 12) | (stackAddr >> 20); // Another rotation
+            fallbackSeed ^= 0xA5A5A5A5; // Additional entropy constant
             
             gen.seed(fallbackSeed);
-            SE_APP_WARN("Random device failed, using fallback seed: {} (error: {})", fallbackSeed, e.what());
+            SE_APP_WARN("Random device failed, using enhanced fallback seed: {} (error: {})", fallbackSeed, e.what());
         }
         
         std::uniform_real_distribution<float> colorDist(0.3f, 1.0f);
@@ -431,15 +489,15 @@ private:
                     
                     // Random chaotic movement using noise with caching
                     
-                    // Generate cache keys for this cube's noise values
-                    std::string keyX = "x_" + std::to_string(static_cast<int>(cube.basePosition.x * 10)) + "_" + std::to_string(static_cast<int>(m_Time * 10));
-                    std::string keyY = "y_" + std::to_string(static_cast<int>(cube.basePosition.y * 10)) + "_" + std::to_string(static_cast<int>(m_Time * 10));
-                    std::string keyZ = "z_" + std::to_string(static_cast<int>(cube.basePosition.z * 10)) + "_" + std::to_string(static_cast<int>(m_Time * 10));
-                    std::string keyScale = "scale_" + std::to_string(static_cast<int>(cube.basePosition.x * 5)) + "_" + std::to_string(static_cast<int>(m_Time * 10));
-                    std::string keyColor = "color_" + std::to_string(static_cast<int>(cube.basePosition.x * 5)) + "_" + std::to_string(static_cast<int>(m_Time * 10));
+                    // Generate efficient hash-based cache keys
+                    NoiseCacheKey keyX(cube.basePosition, m_Time, 'x');
+                    NoiseCacheKey keyY(cube.basePosition, m_Time, 'y');
+                    NoiseCacheKey keyZ(cube.basePosition, m_Time, 'z');
+                    NoiseCacheKey keyScale(cube.basePosition, m_Time, 's');
+                    NoiseCacheKey keyColor(cube.basePosition * 0.5f, m_Time, 'c');
                     
-                    // Get or compute noise values with caching
-                    auto getCachedNoise = [this](const std::string& key, const glm::vec3& pos, float time, float speed, float offset) -> float {
+                    // Get or compute noise values with efficient hash-based caching
+                    auto getCachedNoise = [this](const NoiseCacheKey& key, const glm::vec3& pos, float time, float speed, float offset) -> float {
                         auto it = m_NoiseCache.find(key);
                         if (it != m_NoiseCache.end()) {
                             return it->second;
@@ -449,7 +507,7 @@ private:
                         return noise;
                     };
                     
-                    auto getCachedNoise4D = [this](const std::string& key, const glm::vec3& pos, float time, float speed) -> float {
+                    auto getCachedNoise4D = [this](const NoiseCacheKey& key, const glm::vec3& pos, float time, float speed) -> float {
                         auto it = m_NoiseCache.find(key);
                         if (it != m_NoiseCache.end()) {
                             return it->second;

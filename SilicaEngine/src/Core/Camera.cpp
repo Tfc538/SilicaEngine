@@ -234,10 +234,9 @@ namespace SilicaEngine {
 
         // Apply movement based on camera mode
         if (m_Config.mode == CameraMode::ThirdPerson || m_Config.mode == CameraMode::Orbital) {
-            // For orbital cameras, movement affects the orbit
-            const float ORBITAL_ROTATION_MULTIPLIER = 10.0f; // Configurable orbital rotation speed
-            m_Yaw += movement.x * m_Config.rotationSpeed * ORBITAL_ROTATION_MULTIPLIER;
-            m_Pitch += movement.y * m_Config.rotationSpeed * ORBITAL_ROTATION_MULTIPLIER;
+            // For orbital cameras, movement affects the orbit (now configurable)
+            m_Yaw += movement.x * m_Config.rotationSpeed * m_Config.orbitalRotationMultiplier;
+            m_Pitch += movement.y * m_Config.rotationSpeed * m_Config.orbitalRotationMultiplier;
             m_Config.distance -= movement.z * m_Config.movementSpeed * deltaTime;
             m_Config.distance = std::clamp(m_Config.distance, m_Config.minDistance, m_Config.maxDistance);
         } else {
@@ -289,8 +288,7 @@ namespace SilicaEngine {
             movement *= m_Config.movementSpeed * deltaTime;
 
             if (m_Config.mode == CameraMode::ThirdPerson || m_Config.mode == CameraMode::Orbital) {
-                const float ORBITAL_ROTATION_MULTIPLIER = 10.0f;
-                m_Yaw += movement.x * ORBITAL_ROTATION_MULTIPLIER;
+                m_Yaw += movement.x * m_Config.orbitalRotationMultiplier;
                 m_Config.distance += movement.z;
                 m_Config.distance = std::clamp(m_Config.distance, m_Config.minDistance, m_Config.maxDistance);
             } else {
@@ -318,6 +316,13 @@ namespace SilicaEngine {
     }
 
     glm::vec3 Camera::ScreenToWorldRay(const glm::vec2& screenPos, const glm::vec2& screenSize) const {
+        // Input validation: check for division by zero
+        if (screenSize.x <= 0.0f || screenSize.y <= 0.0f) {
+            SE_WARN("Invalid screen size in ScreenToWorldRay: ({}, {}). Returning default forward vector.", 
+                    screenSize.x, screenSize.y);
+            return m_Front; // Return camera forward direction as fallback
+        }
+        
         // Convert screen position to normalized device coordinates
         float x = (2.0f * screenPos.x) / screenSize.x - 1.0f;
         float y = 1.0f - (2.0f * screenPos.y) / screenSize.y;

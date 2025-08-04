@@ -38,7 +38,7 @@ namespace SilicaEngine {
             callCount++;
             minTimeMs = std::min(minTimeMs, timeMs);
             maxTimeMs = std::max(maxTimeMs, timeMs);
-            avgTimeMs = ((avgTimeMs * (callCount - 1)) + timeMs) / callCount;
+            avgTimeMs = avgTimeMs + (timeMs - avgTimeMs) / callCount;
         }
     };
 
@@ -191,7 +191,7 @@ namespace SilicaEngine {
         /// Frame timing
         std::vector<double> m_frameTimes;
         std::chrono::high_resolution_clock::time_point m_frameStartTime;
-        size_t m_maxFrameTimes = 120; // Keep 2 seconds worth at 60fps
+        size_t m_maxFrameTimes = 120; // Configurable frame history size (default: 2 seconds at 60fps)
         
         /// Settings
         bool m_enabled = true;
@@ -230,9 +230,13 @@ namespace SilicaEngine {
         #define SE_PROFILE_FUNCTION() \
             SE_PROFILE_SCOPE(__FUNCTION__)
         
+        // Macros to create unique variable names to avoid conflicts
+        #define SE_CONCAT_IMPL(a, b) a##b
+        #define SE_CONCAT(a, b) SE_CONCAT_IMPL(a, b)
+        
         #define SE_PROFILE_CATEGORY(name, category) \
             SilicaEngine::Profiler::BeginScopeWithCategory(name, category); \
-            auto _profile_guard = SilicaEngine::make_scope_exit([]() { SilicaEngine::Profiler::EndScope(); })
+            auto SE_CONCAT(_profile_guard_, __LINE__) = SilicaEngine::make_scope_exit([]() { SilicaEngine::Profiler::EndScope(); })
         
         #define SE_PROFILE_BEGIN_FRAME() \
             SilicaEngine::Profiler::BeginFrame()

@@ -10,6 +10,7 @@
 #include "SilicaEngine/SilicaEngine.h"  // For logging macros
 #include "SilicaEngine/Debug/Profiler.h"
 #include <glm/gtc/matrix_transform.hpp>
+#include <mutex>
 
 namespace SilicaEngine {
 
@@ -98,6 +99,12 @@ namespace SilicaEngine {
         return s_BatchRenderer; 
     }
     #define s_BatchRenderer GetBatchRenderer()
+
+    std::mutex& GetBatchMutex() {
+        static std::mutex s_BatchMutex;
+        return s_BatchMutex;
+    }
+    #define s_BatchMutex GetBatchMutex()
 
     ErrorResult<void> Renderer::Initialize() {
         SE_PROFILE_FUNCTION();
@@ -531,6 +538,7 @@ namespace SilicaEngine {
     }
 
     void Renderer::BeginBatch() {
+        std::lock_guard<std::mutex> lock(s_BatchMutex);
         if (s_BatchActive) return;
 
         s_BatchActive = true;
@@ -540,6 +548,7 @@ namespace SilicaEngine {
     }
 
     void Renderer::EndBatch() {
+        std::lock_guard<std::mutex> lock(s_BatchMutex);
         if (!s_BatchActive || s_BatchVertices.empty()) {
             s_BatchActive = false;
             return;
@@ -596,6 +605,7 @@ namespace SilicaEngine {
     void Renderer::SubmitQuad(const glm::vec3& position, const glm::vec2& size,
                              std::shared_ptr<Texture> texture,
                              const glm::vec4& tint) {
+        std::lock_guard<std::mutex> lock(s_BatchMutex);
         if (!s_BatchActive || !texture) return;
 
         // Check if adding this quad would exceed batch limits
@@ -624,17 +634,17 @@ namespace SilicaEngine {
         glm::vec3 topRight = position + glm::vec3(size.x * 0.5f, size.y * 0.5f, 0.0f);
         glm::vec3 topLeft = position + glm::vec3(-size.x * 0.5f, size.y * 0.5f, 0.0f);
 
-        uint32_t baseIndex = static_cast<uint32_t>(s_BatchVertices.size() / 8); // 8 floats per vertex (pos + UV + color)
+        uint32_t baseIndex = static_cast<uint32_t>(s_BatchVertices.size() / 9); // 9 floats per vertex (pos + UV + RGBA color)
 
-        // Add vertices (position + UV + color)
+        // Add vertices (position + UV + RGBA color)
         // Bottom left
-        s_BatchVertices.insert(s_BatchVertices.end(), {bottomLeft.x, bottomLeft.y, bottomLeft.z, 0.0f, 0.0f, tint.r, tint.g, tint.b});
+        s_BatchVertices.insert(s_BatchVertices.end(), {bottomLeft.x, bottomLeft.y, bottomLeft.z, 0.0f, 0.0f, tint.r, tint.g, tint.b, tint.a});
         // Bottom right
-        s_BatchVertices.insert(s_BatchVertices.end(), {bottomRight.x, bottomRight.y, bottomRight.z, 1.0f, 0.0f, tint.r, tint.g, tint.b});
+        s_BatchVertices.insert(s_BatchVertices.end(), {bottomRight.x, bottomRight.y, bottomRight.z, 1.0f, 0.0f, tint.r, tint.g, tint.b, tint.a});
         // Top right
-        s_BatchVertices.insert(s_BatchVertices.end(), {topRight.x, topRight.y, topRight.z, 1.0f, 1.0f, tint.r, tint.g, tint.b});
+        s_BatchVertices.insert(s_BatchVertices.end(), {topRight.x, topRight.y, topRight.z, 1.0f, 1.0f, tint.r, tint.g, tint.b, tint.a});
         // Top left
-        s_BatchVertices.insert(s_BatchVertices.end(), {topLeft.x, topLeft.y, topLeft.z, 0.0f, 1.0f, tint.r, tint.g, tint.b});
+        s_BatchVertices.insert(s_BatchVertices.end(), {topLeft.x, topLeft.y, topLeft.z, 0.0f, 1.0f, tint.r, tint.g, tint.b, tint.a});
 
         // Add indices (two triangles)
         s_BatchIndices.insert(s_BatchIndices.end(), {
@@ -965,7 +975,7 @@ namespace SilicaEngine {
         return true;
     }
 
-    void CheckGLError(const char* operation, const char* file, int line) {
+    void CheckGLErrorDebug(const char* operation, const char* file, int line) {
         GLenum error = glGetError();
         if (error != GL_NO_ERROR) {
             const char* errorString = "Unknown";

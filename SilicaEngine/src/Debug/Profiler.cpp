@@ -24,6 +24,8 @@
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
+#include <mutex>
+#include <once.h>
 
 namespace SilicaEngine {
 
@@ -111,8 +113,12 @@ namespace SilicaEngine {
     // === Profiler Implementation ===
     
     Profiler& Profiler::GetInstance() {
-        static Profiler instance;
-        return instance;
+        static std::once_flag flag;
+        static Profiler* instance = nullptr;
+        std::call_once(flag, []() {
+            instance = new Profiler();
+        });
+        return *instance;
     }
     
     bool Profiler::Initialize() {
@@ -321,6 +327,35 @@ namespace SilicaEngine {
         return 0;
     }
     
+    // Helper function to escape JSON special characters
+    std::string EscapeJsonString(const std::string& str) {
+        std::string escaped;
+        escaped.reserve(str.length() + 10); // Reserve some extra space for escape sequences
+        
+        for (char c : str) {
+            switch (c) {
+                case '"':  escaped += "\\\""; break;
+                case '\\': escaped += "\\\\"; break;
+                case '\b': escaped += "\\b"; break;
+                case '\f': escaped += "\\f"; break;
+                case '\n': escaped += "\\n"; break;
+                case '\r': escaped += "\\r"; break;
+                case '\t': escaped += "\\t"; break;
+                default:
+                    if (c < 0x20) {
+                        // Escape other control characters
+                        char buf[7];
+                        std::sprintf(buf, "\\u%04x", static_cast<unsigned char>(c));
+                        escaped += buf;
+                    } else {
+                        escaped += c;
+                    }
+                    break;
+            }
+        }
+        return escaped;
+    }
+
     std::string Profiler::ExportToJSON() {
         auto results = GetResults();
         
@@ -330,7 +365,7 @@ namespace SilicaEngine {
         for (size_t i = 0; i < results.size(); ++i) {
             const auto& sample = results[i];
             json << "    {\n";
-            json << "      \"name\": \"" << sample.name << "\",\n";
+            json << "      \"name\": \"" << EscapeJsonString(sample.name) << "\",\n";
             json << "      \"cpu_time_ms\": " << sample.cpuTimeMs << ",\n";
             json << "      \"gpu_time_ms\": " << sample.gpuTimeMs << ",\n";
             json << "      \"call_count\": " << sample.callCount << ",\n";

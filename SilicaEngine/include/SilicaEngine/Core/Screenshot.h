@@ -118,8 +118,9 @@ namespace SilicaEngine {
                                                    int padding = 4);
 
     private:
-        static std::string s_DefaultDirectory;
-        static std::mutex s_DefaultDirectoryMutex;
+        // Static member variables moved to implementation file to avoid ODR violations
+        static std::string& GetDefaultDirectoryInternal();
+        static std::mutex& GetDefaultDirectoryMutex();
 
         // Internal capture functions
         static FramebufferData CaptureFramebuffer(const ScreenshotConfig& config);
