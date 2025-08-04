@@ -3,6 +3,12 @@ name: 🚀 Build & Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Git Tag to build (e.g., v1.0.0)'
+        required: true
+        type: string
 
 jobs:
   build:
@@ -20,6 +26,15 @@ jobs:
 
     - uses: microsoft/setup-msbuild@v1
       if: matrix.os == 'windows-latest'
+
+    - name: Determine tag name
+      id: tag
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "TAG=${{ github.event.inputs.tag }}" >> $GITHUB_ENV
+        else
+          echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+        fi
 
     - name: Configure & build
       shell: bash
@@ -45,19 +60,20 @@ jobs:
         if [ "$RUNNER_OS" = "Windows" ]; then
           cp build\\bin\\Fractura.exe dist\\bin\\
           cp build\\lib\\SilicaEngine.lib dist\\lib\\
-          zipName="Caelis-windows-${GITHUB_REF_NAME}.zip"
+          zipName="Caelis-windows-${TAG}.zip"
           powershell -Command "Compress-Archive -Path dist -DestinationPath $zipName"
         else
           cp build/bin/Fractura dist/bin/
           cp build/lib/libSilicaEngine.a dist/lib/
-          zipName="Caelis-linux-${GITHUB_REF_NAME}.zip"
+          zipName="Caelis-linux-${TAG}.zip"
           zip -r $zipName dist
         fi
         echo "ZIP_NAME=$zipName" >> $GITHUB_ENV
 
-    # 6️⃣  Attach to release
-    - uses: softprops/action-gh-release@v2
+    - name: Publish GitHub Release
+      uses: softprops/action-gh-release@v2
       with:
         files: ${{ env.ZIP_NAME }}
+        tag_name: ${{ env.TAG }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
