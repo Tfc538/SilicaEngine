@@ -2,13 +2,13 @@
 
 A modern C++ multi-project repository featuring the **SilicaEngine** game engine and **Fractura** demonstration game. Built with industry-standard practices, comprehensive documentation, and cross-platform compatibility.
 
-![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
+[![Build & Release](https://github.com/Tfc538/SilicaEngine/actions/workflows/release.yml/badge.svg)](https://github.com/Tfc538/SilicaEngine/actions/workflows/release.yml)
 ![C++](https://img.shields.io/badge/C%2B%2B-17-blue)
 ![CMake](https://img.shields.io/badge/CMake-3.16%2B-blue)
 ![OpenGL](https://img.shields.io/badge/OpenGL-4.6-red)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-## 🎯 Project Overview
+##  Project Overview
 
 ### SilicaEngine
 A high-performance, modular game engine featuring:
@@ -28,7 +28,7 @@ A compelling demonstration game showcasing:
 - **Wireframe mode toggle**
 - **Smooth animations and transformations**
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Prerequisites
 
