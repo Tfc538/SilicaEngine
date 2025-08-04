@@ -6,12 +6,11 @@ on:
       - 'v*'
 
 jobs:
-  build:
-    name: Build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+  build_and_release:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
     - name: 📥 Checkout Code
@@ -20,45 +19,53 @@ jobs:
     - name: 🐍 Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.x'
 
-    - name: 🛠️ Setup & Build (Windows)
+    - name: 🔧 Build (Windows)
       if: matrix.os == 'windows-latest'
       run: |
         scripts/windows/setup-deps.bat
         scripts/windows/build-release.bat
 
-    - name: 🛠️ Setup & Build (Linux)
+    - name: 🔧 Build (Linux)
       if: matrix.os == 'ubuntu-latest'
       run: |
         chmod +x scripts/linux/*.sh
         scripts/linux/setup-deps.sh
         scripts/linux/build-release.sh
 
-    - name: 📦 Package Artifacts
+    - name: 📦 Package Artifacts (Windows)
+      if: matrix.os == 'windows-latest'
       run: |
         mkdir dist
-        mkdir dist/bin
-        mkdir dist/lib
-        mkdir dist/include
+        mkdir dist\bin
+        mkdir dist\lib
+        mkdir dist\include
 
-        if [ "${{ runner.os }}" == "Windows" ]; then
-          copy build\\bin\\Fractura.exe dist\\bin\\
-          copy build\\lib\\SilicaEngine.lib dist\\lib\\
-        else
-          cp build/bin/Fractura dist/bin/
-          cp build/lib/libSilicaEngine.a dist/lib/
-        fi
+        copy build\bin\Fractura.exe dist\bin\
+        copy build\lib\SilicaEngine.lib dist\lib\
+        xcopy SilicaEngine\include dist\include /E /I /Y
 
+        powershell -Command "Compress-Archive -Path dist -DestinationPath Caelis-windows-${{ github.ref_name }}.zip"
+
+    - name: 📦 Package Artifacts (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        mkdir -p dist/bin dist/lib dist/include
+
+        cp build/bin/Fractura dist/bin/
+        cp build/lib/libSilicaEngine.a dist/lib/
         cp -r SilicaEngine/include dist/include
 
-        zip -r SilicaEngine-${{ runner.os }}-${{ github.ref_name }}.zip dist
+        zip -r Caelis-linux-${{ github.ref_name }}.zip dist
 
       shell: bash
 
-    - name: 🚀 Upload GitHub Release
+    - name: 🚀 Publish Release Asset
       uses: softprops/action-gh-release@v2
       with:
-        files: SilicaEngine-${{ runner.os }}-${{ github.ref_name }}.zip
+        files: |
+          Caelis-windows-${{ github.ref_name }}.zip
+          Caelis-linux-${{ github.ref_name }}.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
