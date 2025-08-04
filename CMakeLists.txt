@@ -11,8 +11,8 @@ cmake_minimum_required(VERSION 3.16)
 # ============================================================================
 project(Caelis
     VERSION 1.0.0
-    DESCRIPTION "Professional C++ Game Engine with Example Game"
-    LANGUAGES CXX
+    DESCRIPTION "C++ Game Engine with Example Game"
+    LANGUAGES C CXX
 )
 
 # ============================================================================
