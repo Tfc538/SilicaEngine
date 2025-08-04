@@ -25,13 +25,17 @@
         #define SILICA_PLATFORM_WIN32
     #endif
 #elif defined(__APPLE__)
-    #define SILICA_PLATFORM_MACOS
+    #ifndef SILICA_PLATFORM_MACOS
+        #define SILICA_PLATFORM_MACOS
+    #endif
     #include <TargetConditionals.h>
     #if TARGET_OS_IPHONE
         #define SILICA_PLATFORM_IOS
     #endif
 #elif defined(__linux__)
-    #define SILICA_PLATFORM_LINUX
+    #ifndef SILICA_PLATFORM_LINUX
+        #define SILICA_PLATFORM_LINUX
+    #endif
 #else
     #error "Unsupported platform!"
 #endif
