@@ -14,6 +14,17 @@
 
 namespace SilicaEngine {
 
+    // Forward declaration for Tarjan's SCC algorithm function
+    void FindStronglyConnectedComponents(
+        const std::unordered_map<ResourceID, std::unordered_set<ResourceID>>& graph,
+        std::unordered_map<ResourceID, int>& indexMap,
+        std::unordered_map<ResourceID, int>& lowlinkMap,
+        std::stack<ResourceID>& stack,
+        std::unordered_set<ResourceID>& onStack,
+        int& index,
+        std::vector<std::vector<ResourceID>>& sccs,
+        ResourceID v);
+
     AssetDependencyManager& AssetDependencyManager::GetInstance() {
         static AssetDependencyManager instance;
         return instance;

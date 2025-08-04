@@ -33,7 +33,8 @@ namespace SilicaEngine {
         Gameplay = 1,
         UI = 2,
         Debug = 4,
-        Menu = 8
+        Menu = 8,
+        All = 15  // Combined value of all contexts (1+2+4+8)
     };
 
     /// Gamepad/controller button mappings

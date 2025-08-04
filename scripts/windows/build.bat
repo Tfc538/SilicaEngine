@@ -67,5 +67,3 @@ echo  Build completed successfully!
 echo  Executables are in: build\bin\%BUILD_TYPE%\
 echo ============================================================================
 echo.
-
-if %IS_CI%==0 pause

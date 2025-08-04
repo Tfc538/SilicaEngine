@@ -8,6 +8,16 @@
  * Walk through a surreal world of shifting, glowing cubes.
  */
 
+// Platform-specific includes for process ID functions (must be before other includes)
+#ifdef _WIN32
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN  // Reduce Windows header bloat
+    #endif
+    #include <windows.h>
+#elif defined(__unix__) || defined(__APPLE__)
+    #include <unistd.h>
+#endif
+
 #include <SilicaEngine/SilicaEngine.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/noise.hpp>
@@ -16,13 +26,6 @@
 #include <random>
 #include <algorithm>
 #include <unordered_map> // Added for noise caching
-
-// Platform-specific includes for process ID functions
-#ifdef _WIN32
-    #include <windows.h>
-#elif defined(__unix__) || defined(__APPLE__)
-    #include <unistd.h>
-#endif
 
 /// Animation modes for the cube garden
 enum class AnimationMode {
@@ -332,7 +335,7 @@ private:
                 processId = static_cast<unsigned int>(getpid());
             #endif
             auto clockTick = static_cast<unsigned int>(std::chrono::steady_clock::now().time_since_epoch().count());
-            auto stackAddr = static_cast<unsigned int>(reinterpret_cast<uintptr_t>(&seed) & 0xFFFFFFFF);
+            auto stackAddr = static_cast<unsigned int>(reinterpret_cast<uintptr_t>(&timeSeed) & 0xFFFFFFFF);
             
             // Mix entropy sources more robustly
             unsigned int fallbackSeed = timeSeed;

@@ -25,7 +25,6 @@
 #include <sstream>
 #include <iomanip>
 #include <mutex>
-#include <once.h>
 
 namespace SilicaEngine {
 

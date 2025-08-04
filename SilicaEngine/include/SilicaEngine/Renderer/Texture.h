@@ -117,6 +117,7 @@ namespace SilicaEngine {
         int GetHeight() const { return m_Height; }
         int GetChannels() const { return m_Channels; }
         const std::string& GetFilepath() const { return m_Filepath; }
+        const TextureParams& GetParams() const { return m_Params; }
         bool IsValid() const { return m_TextureID != 0; }
         
         /// Static utility functions
