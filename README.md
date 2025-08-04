@@ -130,30 +130,19 @@ cmake --build . --config Release --parallel 8
 ### Directory Structure
 ```
 Caelis/
-├── CMakeLists.txt              # Root build configuration
-├── README.md                   # This file
-├── SilicaEngine/              # Game engine library
-│   ├── CMakeLists.txt         # Engine build configuration
-│   ├── include/               # Public headers
+├── SilicaEngine/               # Game engine library
+│   ├── include/                # Public headers
 │   │   └── SilicaEngine/
-│   │       ├── Core/          # Core engine systems
-│   │       │   ├── Application.h
-│   │       │   ├── Logger.h
-│   │       │   └── Window.h
-│   │       ├── Renderer/      # Rendering systems
-│   │       │   ├── Renderer.h
-│   │       │   └── Shader.h
-│   │       └── SilicaEngine.h # Main engine header
-│   └── src/                   # Implementation files
+│   │       ├── Core/           # Core engine systems
+│   │       └── Renderer/       # Rendering systems
+│   └── src/                    # Implementation files
 │       ├── Core/
 │       └── Renderer/
-├── Fractura/                  # Demonstration game
-│   ├── CMakeLists.txt         # Game build configuration
+├── Fractura/                   # Demonstration game
 │   ├── src/
-│   │   └── main.cpp           # Game implementation
-│   └── assets/                # Game assets
-│       └── shaders/           # GLSL shaders
-└── external/                  # Third-party dependencies (auto-managed)
+│   └── assets/                 # Game assets
+│       └── shaders/            # GLSL shaders
+└── external/                   # Third-party dependencies (auto-managed)
 ```
 
 ### Engine Components
@@ -177,85 +166,6 @@ The project uses CMake's `FetchContent` to automatically download and build depe
 | **GLAD** | OpenGL function loading | 2.0.5 |
 | **GLM** | Mathematics library | 1.0.1 |
 | **spdlog** | High-performance logging | 1.12.0 |
-
-## 🛠️ Development
-
-### Building Custom Applications
-
-1. **Create your application class:**
-```cpp
-#include <SilicaEngine/SilicaEngine.h>
-
-class MyApp : public SilicaEngine::Application {
-public:
-    MyApp() : SilicaEngine::Application(GetConfig()) {}
-
-protected:
-    bool OnInitialize() override {
-        // Your initialization code
-        return true;
-    }
-    
-    void OnUpdate(float deltaTime) override {
-        // Your update logic
-    }
-    
-    void OnRender() override {
-        // Your rendering code
-        SilicaEngine::Renderer::SetClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        SilicaEngine::Renderer::Clear();
-    }
-
-private:
-    static SilicaEngine::ApplicationConfig GetConfig() {
-        SilicaEngine::ApplicationConfig config;
-        config.windowTitle = "My Application";
-        config.windowWidth = 1280;
-        config.windowHeight = 720;
-        return config;
-    }
-};
-
-int main() {
-    MyApp app;
-    return app.Run();
-}
-```
-
-2. **Link against SilicaEngine:**
-```cmake
-target_link_libraries(MyApp PRIVATE SilicaEngine::SilicaEngine)
-```
-
-### Extending the Engine
-
-The engine is designed for extensibility:
-
-- **Add new renderer features** in `SilicaEngine/Renderer/`
-- **Extend core systems** in `SilicaEngine/Core/`
-- **Create custom shaders** in your application's assets folder
-- **Add platform-specific code** using the existing platform detection macros
-
-## 📊 Performance
-
-### Optimization Features
-- **Static library compilation** for optimal performance
-- **Modern OpenGL** with efficient state management
-- **Minimal overhead logging** with compile-time filtering
-- **Header-only mathematics** library for inline operations
-- **Efficient geometry batching** for primitive rendering
-
-### Benchmarks
-*Performance tested on:*
-- **GPU**: NVIDIA RTX 3070 / AMD RX 6700 XT equivalent
-- **CPU**: Intel i7-10700K / AMD Ryzen 7 3700X equivalent
-- **RAM**: 16GB DDR4
-
-| Scene Complexity | FPS (Avg) | Draw Calls | Triangles |
-|------------------|-----------|------------|-----------|
-| 10 cubes + grid  | 2000+     | 12         | 86        |
-| 100 cubes + grid | 1200+     | 102        | 806       |
-| 1000 cubes + grid| 400+      | 1002       | 8006      |
 
 ## 🔧 Configuration Options
 
@@ -285,79 +195,13 @@ config.enableVSync = false;  // Disable VSync for maximum FPS
 config.windowResizable = false;  // Fixed window size
 ```
 
-## 🧪 Testing
-
-### Build Verification
-```bash
-# Test build system
-cmake --build build --target all
-
-# Verify executables
-./build/bin/Fractura --version  # Should display version info
-```
-
-### Runtime Tests
-1. **Graphics Test**: Run Fractura and verify 3D scene renders correctly
-2. **Input Test**: Test all keyboard and mouse controls
-3. **Performance Test**: Monitor FPS and resource usage
-4. **Stability Test**: Run for extended periods without crashes
-
-## 📚 API Reference
-
-### Core Classes
-
-#### Application
-```cpp
-class Application {
-public:
-    Application(const ApplicationConfig& config);
-    int Run();
-    void Close();
-    
-protected:
-    virtual bool OnInitialize();
-    virtual void OnUpdate(float deltaTime);
-    virtual void OnRender();
-    virtual void OnShutdown();
-};
-```
-
-#### Renderer
-```cpp
-class Renderer {
-public:
-    static bool Initialize();
-    static void Shutdown();
-    static void BeginFrame();
-    static void EndFrame();
-    static void Clear();
-    static void SetViewMatrix(const glm::mat4& view);
-    static void DrawCube(const glm::vec3& pos, const glm::vec3& size, const glm::vec4& color);
-    // ... more methods
-};
-```
-
-### Logging Macros
-```cpp
-SE_TRACE("Debug message: {}", value);
-SE_INFO("Information: {}", message);
-SE_WARN("Warning: {}", warning);
-SE_ERROR("Error: {}", error);
-SE_CRITICAL("Critical: {}", critical);
-
-// Application-specific logging
-SE_APP_INFO("Application message: {}", data);
-```
-
 ## 🤝 Contributing
 
 We welcome contributions! Please follow these guidelines:
 
 1. **Fork the repository** and create a feature branch
-2. **Follow the coding style** (see `.clang-format` if available)
-3. **Add tests** for new functionality
-4. **Update documentation** for API changes
-5. **Submit a pull request** with a clear description
+2. **Update documentation** for API changes
+3. **Submit a pull request** with a clear description
 
 ### Coding Standards
 - Use **modern C++17** features appropriately
