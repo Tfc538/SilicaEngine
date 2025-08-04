@@ -44,13 +44,14 @@ else
     cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -G "Xcode" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 fi
 
-# Build the project
+# Get number of CPU cores for parallel build
+CORES=$(sysctl -n hw.ncpu)
 echo ""
-echo "Building project..."
+echo "Building project with \"$CORES\" cores..."
 if [[ $IS_CI -eq 1 ]]; then
-    cmake --build . --config $BUILD_TYPE --parallel $(sysctl -n hw.ncpu) --verbose
+    cmake --build . --config $BUILD_TYPE --parallel "$CORES" --verbose
 else
-    cmake --build . --config $BUILD_TYPE --parallel $(sysctl -n hw.ncpu)
+    cmake --build . --config $BUILD_TYPE --parallel "$CORES"
 fi
 
 echo ""

@@ -2,7 +2,7 @@
  * @file Window.h
  * @brief Cross-platform window management using GLFW
  * @author Tim Gatzke <post@tim-gatzke.de>
- * @version 1.0.0
+ * @version 1.1.0
  * 
  * Window creation, OpenGL context setup, and event handling.
  */
@@ -12,6 +12,7 @@
 #include <glad/gl.h>           // Must be included before GLFW
 #define GLFW_INCLUDE_NONE      // Prevent GLFW from including OpenGL headers
 #include <GLFW/glfw3.h>
+#include "SilicaEngine/Core/ErrorCodes.h"
 #include <string>
 #include <functional>
 
@@ -51,10 +52,10 @@ namespace SilicaEngine {
         ~Window();
 
         /// Initialize window and OpenGL context
-        bool Initialize();
+        ErrorResult<void> Initialize();
 
         /// Cleanup and shutdown
-        void Shutdown();
+        ErrorResult<void> Shutdown();
 
         /// Poll for window events
         void PollEvents();

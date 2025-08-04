@@ -7,7 +7,10 @@
 #include "SilicaEngine/Core/Application.h"
 #include "SilicaEngine/Core/Logger.h"
 #include "SilicaEngine/Renderer/Renderer.h"
+#include "SilicaEngine/Debug/Profiler.h"
 #include <GLFW/glfw3.h>
+#include <chrono>
+#include <thread>
 
 namespace SilicaEngine {
 
@@ -34,8 +37,11 @@ namespace SilicaEngine {
     }
 
     int Application::Run() {
-        if (!Initialize()) {
-            SE_ERROR("Failed to initialize application");
+        SE_PROFILE_FUNCTION();
+        
+        auto initResult = Initialize();
+        if (!initResult) {
+            SE_ERROR("Failed to initialize application: {}", initResult.errorMessage);
             return -1;
         }
 
@@ -45,6 +51,8 @@ namespace SilicaEngine {
 
         // Main loop
         while (m_Running && !m_Window->ShouldClose()) {
+            SE_PROFILE_BEGIN_FRAME();
+            
             // Update timing
             UpdateTiming();
 
@@ -52,15 +60,28 @@ namespace SilicaEngine {
             m_Window->PollEvents();
 
             // Update application
-            OnUpdate(m_DeltaTime);
+            {
+                SE_PROFILE_SCOPE("Application Update");
+                OnUpdate(m_DeltaTime);
+            }
 
             // Render
-            Renderer::BeginFrame();
-            OnRender();
-            Renderer::EndFrame();
+            {
+                SE_PROFILE_SCOPE("Application Render");
+                Renderer::BeginFrame();
+                OnRender();
+                Renderer::RenderDebugInfo();
+                OnDebugRender();
+                Renderer::EndFrame();
+            }
 
             // Swap buffers
             m_Window->SwapBuffers();
+            
+            // Small sleep to prevent CPU/GPU overload (0ms)
+            std::this_thread::sleep_for(std::chrono::milliseconds(0));
+            
+            SE_PROFILE_END_FRAME();
         }
 
         SE_INFO("Application loop ended");
@@ -93,9 +114,9 @@ namespace SilicaEngine {
         return m_FPS;
     }
 
-    bool Application::OnInitialize() {
+    ErrorResult<void> Application::OnInitialize() {
         SE_INFO("Default application initialization");
-        return true;
+        return ErrorResult<void>::Success();
     }
 
     void Application::OnUpdate(float deltaTime) {
@@ -111,6 +132,10 @@ namespace SilicaEngine {
 
     void Application::OnShutdown() {
         SE_INFO("Default application shutdown");
+    }
+    
+    void Application::OnDebugRender() {
+        // Default debug rendering - can be overridden by derived classes
     }
 
     void Application::OnWindowResize(uint32_t width, uint32_t height) {
@@ -150,7 +175,9 @@ namespace SilicaEngine {
         SE_TRACE("Scroll event: {}, {}", xoffset, yoffset);
     }
 
-    bool Application::Initialize() {
+    ErrorResult<void> Application::Initialize() {
+        SE_PROFILE_FUNCTION();
+        
         SE_INFO("Initializing application...");
 
         // Initialize logger first
@@ -171,9 +198,10 @@ namespace SilicaEngine {
 
         // Create window
         m_Window = std::make_unique<Window>(windowProps, openglProps);
-        if (!m_Window->Initialize()) {
-            SE_ERROR("Failed to initialize window");
-            return false;
+        auto windowResult = m_Window->Initialize();
+        if (!windowResult) {
+            SE_ERROR("Failed to initialize window: {}", windowResult.errorMessage);
+            return ErrorResult<void>::Error(EngineError::WindowCreationFailed, windowResult.errorMessage);
         }
 
         // Set window user pointer for callbacks
@@ -183,9 +211,10 @@ namespace SilicaEngine {
         SetupWindowCallbacks();
 
         // Initialize renderer
-        if (!Renderer::Initialize()) {
-            SE_ERROR("Failed to initialize renderer");
-            return false;
+        auto rendererResult = Renderer::Initialize();
+        if (!rendererResult) {
+            SE_ERROR("Failed to initialize renderer: {}", rendererResult.errorMessage);
+            return ErrorResult<void>::Error(EngineError::InitializationFailed, rendererResult.errorMessage);
         }
 
         // Set VSync based on config
@@ -195,19 +224,22 @@ namespace SilicaEngine {
         Renderer::SetViewport(0, 0, static_cast<int>(m_Config.windowWidth), static_cast<int>(m_Config.windowHeight));
 
         // Call user initialization
-        if (!OnInitialize()) {
-            SE_ERROR("Application-specific initialization failed");
-            return false;
+        auto userInitResult = OnInitialize();
+        if (!userInitResult) {
+            SE_ERROR("Application-specific initialization failed: {}", userInitResult.errorMessage);
+            return ErrorResult<void>::Error(EngineError::InitializationFailed, userInitResult.errorMessage);
         }
 
         m_Initialized = true;
         SE_INFO("Application initialized successfully");
-        return true;
+        return ErrorResult<void>::Success();
     }
 
-    void Application::Shutdown() {
+    ErrorResult<void> Application::Shutdown() {
+        SE_PROFILE_FUNCTION();
+        
         if (!m_Initialized) {
-            return;
+            return ErrorResult<void>::Success();
         }
 
         SE_INFO("Shutting down application...");
@@ -216,11 +248,17 @@ namespace SilicaEngine {
         OnShutdown();
 
         // Shutdown renderer
-        Renderer::Shutdown();
+        auto rendererResult = Renderer::Shutdown();
+        if (!rendererResult) {
+            SE_WARN("Renderer shutdown had issues: {}", rendererResult.errorMessage);
+        }
 
         // Shutdown window
         if (m_Window) {
-            m_Window->Shutdown();
+            auto windowResult = m_Window->Shutdown();
+            if (!windowResult) {
+                SE_WARN("Window shutdown had issues: {}", windowResult.errorMessage);
+            }
             m_Window.reset();
         }
 
@@ -229,6 +267,7 @@ namespace SilicaEngine {
 
         m_Initialized = false;
         m_Running = false;
+        return ErrorResult<void>::Success();
     }
 
     void Application::UpdateTiming() {

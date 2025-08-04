@@ -7,7 +7,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(SilicaEngine
-    VERSION 1.0.0
+    VERSION 1.1.0
     DESCRIPTION "High-Performance OpenGL Game Engine"
     LANGUAGES CXX
 )
@@ -55,6 +55,7 @@ target_link_libraries(SilicaEngine
         glad_gl_core_43
         glm::glm
         spdlog::spdlog
+        stb
 )
 
 # ============================================================================

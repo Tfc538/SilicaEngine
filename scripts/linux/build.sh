@@ -42,13 +42,14 @@ else
     cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 fi
 
-# Build the project
+# Get number of CPU cores for parallel build
+CORES=$(nproc)
 echo ""
-echo "Building project..."
+echo "Building project with \"$CORES\" cores..."
 if [[ $IS_CI -eq 1 ]]; then
-    cmake --build . --config $BUILD_TYPE --parallel $(nproc) --verbose
+    cmake --build . --config $BUILD_TYPE --parallel "$CORES" --verbose
 else
-    cmake --build . --config $BUILD_TYPE --parallel $(nproc)
+    cmake --build . --config $BUILD_TYPE --parallel "$CORES"
 fi
 
 echo ""

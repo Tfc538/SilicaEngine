@@ -48,6 +48,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 if(MSVC)
     add_compile_options(/W4)
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+    # Suppress spdlog warnings about deprecated iterators
+    add_compile_definitions(_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING)
 else()
     add_compile_options(-Wall -Wextra -Wpedantic)
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -129,6 +131,18 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glad)
 glad_add_library(glad_gl_core_43 STATIC REPRODUCIBLE LOADER API gl:core=4.3)
+
+# STB (for image loading)
+FetchContent_Declare(
+    stb
+    GIT_REPOSITORY https://github.com/nothings/stb.git
+    GIT_TAG        f58f558c120e9b32c217290b80bad1a0729fbb2c
+)
+FetchContent_MakeAvailable(stb)
+
+# Create interface library for STB
+add_library(stb INTERFACE)
+target_include_directories(stb INTERFACE ${stb_SOURCE_DIR})
 
 # ============================================================================
 # Global Include Directories

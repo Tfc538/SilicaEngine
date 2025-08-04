@@ -2,7 +2,7 @@
  * @file Application.h
  * @brief Core application class for SilicaEngine
  * @author Tim Gatzke <post@tim-gatzke.de>
- * @version 1.0.0
+ * @version 1.1.0
  * 
  * Main Application class that handles lifecycle, window management, and game loop.
  */
@@ -10,6 +10,8 @@
 #pragma once
 
 #include "Window.h"
+#include "SilicaEngine/Core/ErrorCodes.h"
+#include "SilicaEngine/Debug/Profiler.h"
 #include <memory>
 #include <string>
 
@@ -47,13 +49,16 @@ namespace SilicaEngine {
 
     protected:
         /// Override for custom initialization after window/OpenGL creation
-        virtual bool OnInitialize();
+        virtual ErrorResult<void> OnInitialize();
 
         /// Override for per-frame logic updates
         virtual void OnUpdate(float deltaTime);
 
         /// Override for rendering logic
         virtual void OnRender();
+        
+        /// Override for debug rendering (called after main render)
+        virtual void OnDebugRender();
 
         /// Override for cleanup before shutdown
         virtual void OnShutdown();
@@ -78,8 +83,8 @@ namespace SilicaEngine {
         float m_FPSTimer;
         float m_FPS;
 
-        bool Initialize();
-        void Shutdown();
+        ErrorResult<void> Initialize();
+        ErrorResult<void> Shutdown();
         void UpdateTiming();
         void SetupWindowCallbacks();
 

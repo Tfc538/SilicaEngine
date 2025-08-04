@@ -42,13 +42,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
+REM Get number of CPU cores for parallel build
+for /f "tokens=*" %%i in ('wmic cpu get NumberOfCores /value ^| find "="') do set %%i
+set /a CORES=%NumberOfCores%
+
 REM Build the project
 echo.
-echo Building project...
+echo Building project with %CORES% cores...
 if %IS_CI%==1 (
-    cmake --build . --config %BUILD_TYPE% --parallel --verbose
+    cmake --build . --config %BUILD_TYPE% --parallel %CORES% --verbose
 ) else (
-    cmake --build . --config %BUILD_TYPE% --parallel
+    cmake --build . --config %BUILD_TYPE% --parallel %CORES%
 )
 if errorlevel 1 (
     echo.

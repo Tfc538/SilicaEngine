@@ -5,10 +5,12 @@
  */
 
 #include "SilicaEngine/Renderer/Shader.h"
+#include "SilicaEngine/Core/ErrorCodes.h"
 #include "SilicaEngine/SilicaEngine.h"  // For logging macros
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <mutex>
 
 namespace SilicaEngine {
 
@@ -25,7 +27,7 @@ namespace SilicaEngine {
         Delete();
     }
 
-    bool Shader::CreateFromString(const std::string& vertexSource, const std::string& fragmentSource, const std::string& geometrySource) {
+    ErrorResult<void> Shader::CreateFromString(const std::string& vertexSource, const std::string& fragmentSource, const std::string& geometrySource) {
         // Delete existing program if it exists
         Delete();
 
@@ -33,14 +35,14 @@ namespace SilicaEngine {
         uint32_t vertexShader = CompileShader(ShaderType::Vertex, vertexSource);
         if (vertexShader == 0) {
             SE_ERROR("Failed to compile vertex shader");
-            return false;
+            return ErrorResult<void>::Error(EngineError::ShaderCompilationFailed, "Failed to compile vertex shader");
         }
 
         uint32_t fragmentShader = CompileShader(ShaderType::Fragment, fragmentSource);
         if (fragmentShader == 0) {
             SE_ERROR("Failed to compile fragment shader");
             glDeleteShader(vertexShader);
-            return false;
+            return ErrorResult<void>::Error(EngineError::ShaderCompilationFailed, "Failed to compile fragment shader");
         }
 
         uint32_t geometryShader = 0;
@@ -50,7 +52,7 @@ namespace SilicaEngine {
                 SE_ERROR("Failed to compile geometry shader");
                 glDeleteShader(vertexShader);
                 glDeleteShader(fragmentShader);
-                return false;
+                return ErrorResult<void>::Error(EngineError::ShaderCompilationFailed, "Failed to compile geometry shader");
             }
         }
 
@@ -62,7 +64,7 @@ namespace SilicaEngine {
             if (geometryShader != 0) {
                 glDeleteShader(geometryShader);
             }
-            return false;
+            return ErrorResult<void>::Error(EngineError::ShaderLinkingFailed, "Failed to link shader program");
         }
 
         // Clean up individual shaders (they're now part of the program)
@@ -73,21 +75,21 @@ namespace SilicaEngine {
         }
 
         SE_INFO("Shader program created successfully (ID: {})", m_ProgramID);
-        return true;
+        return ErrorResult<void>::Success();
     }
 
-    bool Shader::CreateFromFile(const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath) {
+    ErrorResult<void> Shader::CreateFromFile(const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath) {
         // Load shader sources from files
         std::string vertexSource = LoadShaderSource(vertexPath);
         if (vertexSource.empty()) {
             SE_ERROR("Failed to load vertex shader from file: {}", vertexPath);
-            return false;
+            return ErrorResult<void>::Error(EngineError::FileNotFound, "Failed to load vertex shader from file: " + vertexPath);
         }
 
         std::string fragmentSource = LoadShaderSource(fragmentPath);
         if (fragmentSource.empty()) {
             SE_ERROR("Failed to load fragment shader from file: {}", fragmentPath);
-            return false;
+            return ErrorResult<void>::Error(EngineError::FileNotFound, "Failed to load fragment shader from file: " + fragmentPath);
         }
 
         std::string geometrySource;
@@ -95,7 +97,7 @@ namespace SilicaEngine {
             geometrySource = LoadShaderSource(geometryPath);
             if (geometrySource.empty()) {
                 SE_ERROR("Failed to load geometry shader from file: {}", geometryPath);
-                return false;
+                return ErrorResult<void>::Error(EngineError::FileNotFound, "Failed to load geometry shader from file: " + geometryPath);
             }
         }
 
@@ -370,13 +372,22 @@ namespace SilicaEngine {
     }
 
     int Shader::GetUniformLocationCached(const std::string& name) {
-        auto it = m_UniformLocationCache.find(name);
-        if (it != m_UniformLocationCache.end()) {
-            return it->second;
+        // Check cache first (thread-safe)
+        {
+            std::lock_guard<std::mutex> lock(m_UniformCacheMutex);
+            auto it = m_UniformLocationCache.find(name);
+            if (it != m_UniformLocationCache.end()) {
+                return it->second;
+            }
         }
 
+        // Query OpenGL and cache the result
         int location = glGetUniformLocation(m_ProgramID, name.c_str());
-        m_UniformLocationCache[name] = location;
+        
+        {
+            std::lock_guard<std::mutex> lock(m_UniformCacheMutex);
+            m_UniformLocationCache[name] = location;
+        }
         
         if (location == -1) {
             SE_WARN("Uniform '{}' not found in shader program {}", name, m_ProgramID);

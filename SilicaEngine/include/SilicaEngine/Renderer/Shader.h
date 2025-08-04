@@ -2,7 +2,7 @@
  * @file Shader.h
  * @brief OpenGL shader management for SilicaEngine
  * @author Tim Gatzke <post@tim-gatzke.de>
- * @version 1.0.0
+ * @version 1.1.0
  * 
  * Shader compilation, linking, and uniform management.
  */
@@ -15,11 +15,13 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include "SilicaEngine/Core/ErrorCodes.h"
 #include <string>
 #include <unordered_map>
 #include <memory>
 #include <string>
 #include <vector>
+#include <mutex>
 
 namespace SilicaEngine {
 
@@ -41,13 +43,13 @@ namespace SilicaEngine {
                const std::string& geometrySource = "");
         ~Shader();
 
-        /// Create shader from source strings
-        bool CreateFromString(const std::string& vertexSource, const std::string& fragmentSource,
-                            const std::string& geometrySource = "");
+                /// Create shader from source strings
+        ErrorResult<void> CreateFromString(const std::string& vertexSource, const std::string& fragmentSource,
+                                         const std::string& geometrySource = "");
 
         /// Create shader from files
-        bool CreateFromFile(const std::string& vertexPath, const std::string& fragmentPath,
-                          const std::string& geometryPath = "");
+        ErrorResult<void> CreateFromFile(const std::string& vertexPath, const std::string& fragmentPath,
+                                        const std::string& geometryPath = "");
 
         /// Bind/unbind shader program
         void Bind() const;
@@ -82,7 +84,8 @@ namespace SilicaEngine {
 
     private:
         uint32_t m_ProgramID;
-        std::unordered_map<std::string, int> m_UniformLocationCache;
+        mutable std::unordered_map<std::string, int> m_UniformLocationCache;
+        mutable std::mutex m_UniformCacheMutex; // Keep regular mutex for C++17 compatibility
 
         uint32_t CompileShader(ShaderType type, const std::string& source);
         bool LinkProgram(uint32_t vertexShader, uint32_t fragmentShader, uint32_t geometryShader = 0);

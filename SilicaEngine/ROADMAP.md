@@ -6,20 +6,20 @@
 
 #### 🆕 Input
 
-* [ ] Key remapping and input configuration system
-* [ ] Input context layers (e.g. UI vs gameplay)
-* [ ] Gamepad/controller support (via GLFW or SDL)
+* [x] Key remapping and input configuration system
+* [x] Input context layers (e.g. UI vs gameplay)
+* [x] Gamepad/controller support (via GLFW or SDL)
 
 #### 🆕 Asset Management
 
-* [ ] Texture loading (stb\_image or similar)
-* [ ] Basic texture support in shaders
-* [ ] Asset manager module with reference counting or handles
+* [x] Texture loading (stb\_image or similar)
+* [x] Basic texture support in shaders
+* [x] Asset manager module with reference counting or handles
 
 #### 🔧 Improvements
 
-* [ ] Configurable default camera controller
-* [ ] Screenshot format choice (e.g. PNG vs raw framebuffer)
+* [x] Configurable default camera controller
+* [x] Screenshot format choice (e.g. PNG vs raw framebuffer)
 
 ---
 
@@ -96,6 +96,48 @@
 * [ ] 2D/3D positional audio
 * [ ] Sound asset management
 
+
+---
+
+### ⚡ v1.6.0 — GPU-Driven Rendering & Compute
+
+**Why:** Massive performance breakthrough: GPU-driven scene management and compute shaders for modern high-performance rendering.
+
+#### 🆕 Compute Shader Infrastructure
+
+* [ ] Compute shader compilation and dispatch system
+* [ ] Shader storage buffer objects (SSBO) support
+* [ ] Atomic counter buffers for GPU synchronization
+* [ ] Work group management and dispatch utilities
+
+#### 🆕 Indirect Rendering
+
+* [ ] Draw indirect command generation
+* [ ] Multi-draw indirect rendering
+* [ ] GPU-generated draw command buffers
+* [ ] Command buffer management and optimization
+
+#### 🆕 GPU Scene Management
+
+* [ ] GPU-side frustum culling with compute shaders
+* [ ] GPU LOD selection and management
+* [ ] GPU occlusion culling (basic implementation)
+* [ ] GPU draw command generation from scene data
+
+#### 🆕 Advanced Memory Management
+
+* [ ] Persistent mapped buffers for GPU-CPU communication
+* [ ] GPU-only memory pools and allocation
+* [ ] Buffer storage objects for high-performance data transfer
+* [ ] Memory barrier and synchronization utilities
+
+#### 🔧 Performance Optimizations
+
+* [ ] GPU-driven animation calculations
+* [ ] GPU particle systems
+* [ ] GPU instancing with indirect commands
+* [ ] Performance monitoring and GPU profiling tools
+
 ---
 
 ### 🧰 v2.0.0 — Editor & Full Runtime Tools
@@ -118,3 +160,5 @@
 * Asset importers (gltf, obj, fbx)
 * Deferred & PBR rendering
 * Full multi-threading support
+* Advanced GPU compute (e.g. ray tracing)
+* Multi-GPU support and GPU memory pooling

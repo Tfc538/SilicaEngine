@@ -2,7 +2,7 @@
  * @file SilicaEngine.h
  * @brief Main header for SilicaEngine
  * @author Tim Gatzke <post@tim-gatzke.de>
- * @version 1.0.0
+ * @version 1.1.0
  * 
  * Include this file to access the complete engine API.
  */
@@ -10,9 +10,15 @@
 #pragma once
 
 // Version Information
-#define SILICA_ENGINE_VERSION_MAJOR 1
-#define SILICA_ENGINE_VERSION_MINOR 0
-#define SILICA_ENGINE_VERSION_PATCH 0
+#ifndef SILICA_ENGINE_VERSION_MAJOR
+    #define SILICA_ENGINE_VERSION_MAJOR 1
+#endif
+#ifndef SILICA_ENGINE_VERSION_MINOR
+    #define SILICA_ENGINE_VERSION_MINOR 1
+#endif
+#ifndef SILICA_ENGINE_VERSION_PATCH
+    #define SILICA_ENGINE_VERSION_PATCH 0
+#endif
 
 // Platform Detection
 #ifdef _WIN32
@@ -44,10 +50,24 @@
 #include "Core/Logger.h"
 #include "Core/Application.h"
 #include "Core/Window.h"
+#include "Core/Input.h"
+#include "Core/AssetManager.h"
+#include "Core/AssetDependency.h"
+#include "Core/Camera.h"
+#include "SilicaEngine/Core/ErrorCodes.h"
+#include "Core/ResourceHandle.h"
+#include "Core/ResourceTracker.h"
+#include "Core/Result.h"
+#include "Core/Screenshot.h"
 
 // Renderer Headers
 #include "Renderer/Renderer.h"
 #include "Renderer/Shader.h"
+#include "Renderer/Texture.h"
+
+// Debug Headers
+#include "SilicaEngine/Debug/DebugRenderer.h"
+#include "Debug/Profiler.h"
 
 // Third-Party Headers
 #define GLFW_INCLUDE_NONE
@@ -73,7 +93,7 @@ namespace SilicaEngine {
 }
 
 // Convenience Macros
-#define SE_VERSION_STRING "1.0.0"
+#define SE_VERSION_STRING "1.1.0"
 #define SE_ENGINE_NAME "SilicaEngine"
 
 // Debug Assertions

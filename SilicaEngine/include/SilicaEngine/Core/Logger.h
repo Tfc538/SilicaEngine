@@ -2,7 +2,7 @@
  * @file Logger.h
  * @brief Logging system for SilicaEngine using spdlog
  * @author Tim Gatzke <post@tim-gatzke.de>
- * @version 1.0.0
+ * @version 1.1.0
  * 
  * High-performance logging with engine/application separation and multiple output sinks.
  */

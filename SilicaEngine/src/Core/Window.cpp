@@ -23,15 +23,15 @@ namespace SilicaEngine {
         Shutdown();
     }
 
-    bool Window::Initialize() {
+    ErrorResult<void> Window::Initialize() {
         if (m_Initialized) {
-            return true;
+            return ErrorResult<void>::Success();
         }
 
         // Initialize GLFW
         if (!glfwInit()) {
             SE_ERROR("Failed to initialize GLFW");
-            return false;
+            return ErrorResult<void>::Error(EngineError::InitializationFailed, "Failed to initialize GLFW");
         }
 
         SE_INFO("GLFW initialized successfully");
@@ -51,7 +51,7 @@ namespace SilicaEngine {
         if (!m_Window) {
             SE_ERROR("Failed to create GLFW window");
             glfwTerminate();
-            return false;
+            return ErrorResult<void>::Error(EngineError::WindowCreationFailed, "Failed to create GLFW window");
         }
 
         SE_INFO("Window created: {}x{} - '{}'", m_WindowProps.width, m_WindowProps.height, m_WindowProps.title);
@@ -63,7 +63,7 @@ namespace SilicaEngine {
         if (!InitializeOpenGL()) {
             SE_ERROR("Failed to initialize OpenGL");
             Shutdown();
-            return false;
+            return ErrorResult<void>::Error(EngineError::InitializationFailed, "Failed to initialize OpenGL");
         }
 
         // Set up default OpenGL state
@@ -85,12 +85,12 @@ namespace SilicaEngine {
         m_Initialized = true;
         SE_INFO("Window initialization completed successfully");
 
-        return true;
+        return ErrorResult<void>::Success();
     }
 
-    void Window::Shutdown() {
+    ErrorResult<void> Window::Shutdown() {
         if (!m_Initialized) {
-            return;
+            return ErrorResult<void>::Success();
         }
 
         if (m_Window) {
@@ -101,6 +101,7 @@ namespace SilicaEngine {
 
         glfwTerminate();
         m_Initialized = false;
+        return ErrorResult<void>::Success();
     }
 
     void Window::PollEvents() {
