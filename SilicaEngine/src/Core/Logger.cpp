@@ -1,6 +1,7 @@
 /**
  * @file Logger.cpp
- * @brief Implementation of the logging system for SilicaEngine
+ * @brief Logging system implementation
+ * @author Tim Gatzke <post@tim-gatzke.de>
  */
 
 #include "SilicaEngine/Core/Logger.h"

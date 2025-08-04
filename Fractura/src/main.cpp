@@ -1,10 +1,10 @@
 /**
  * @file main.cpp
- * @brief Main entry point for Fractura - Example game using SilicaEngine
+ * @brief Fractura demo application
+ * @author Tim Gatzke <post@tim-gatzke.de>
  * @version 1.0.0
  * 
- * Fractura demonstrates the capabilities of the SilicaEngine by creating
- * a simple 3D scene with rotating cubes, camera controls, and basic lighting.
+ * Demonstrates SilicaEngine features with animated 3D scene.
  */
 
 #include <SilicaEngine/SilicaEngine.h>
@@ -12,17 +12,7 @@
 #include <vector>
 #include <memory>
 
-/**
- * @class FracturaApp
- * @brief Main application class for Fractura
- * 
- * Demonstrates engine features including:
- * - 3D rendering with multiple objects
- * - Camera controls (WASD movement, mouse look)
- * - Primitive shapes (cubes, grid)
- * - Basic animation (rotation)
- * - Real-time statistics display
- */
+/// Fractura demo app showcasing SilicaEngine features
 class FracturaApp : public SilicaEngine::Application {
 public:
     FracturaApp() 

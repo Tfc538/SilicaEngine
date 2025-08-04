@@ -1,6 +1,7 @@
 /**
  * @file Renderer.cpp
- * @brief Implementation of the Renderer class for SilicaEngine
+ * @brief OpenGL renderer implementation
+ * @author Tim Gatzke <post@tim-gatzke.de>
  */
 
 #include "SilicaEngine/Renderer/Renderer.h"

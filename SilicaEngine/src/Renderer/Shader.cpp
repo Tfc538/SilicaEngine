@@ -1,6 +1,7 @@
 /**
  * @file Shader.cpp
- * @brief Implementation of the Shader class for SilicaEngine
+ * @brief OpenGL shader management implementation
+ * @author Tim Gatzke <post@tim-gatzke.de>
  */
 
 #include "SilicaEngine/Renderer/Shader.h"

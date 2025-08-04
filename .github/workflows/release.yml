@@ -11,23 +11,29 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: 🧱 Checkout Code
+    - name: 🔄 Checkout Code
       uses: actions/checkout@v4
 
-    - name: 🔧 Run Setup Script
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: ⚙️ Run Setup Script
       run: scripts/windows/setup-deps.bat
 
     - name: 🛠️ Run Build Script
       run: scripts/windows/build-release.bat
+      env:
+        PYTHON_EXECUTABLE: python  # Ensures Python is visible to CMake and GLAD
 
-    - name: 🗃️ Package Build Output
+    - name: 📦 Package Build Output
       run: |
         mkdir dist
         mkdir dist/bin
         mkdir dist/lib
         mkdir dist/include
 
-        # Adjust these paths if different
         copy build\\bin\\Fractura.exe dist\\bin\\
         copy build\\lib\\SilicaEngine.lib dist\\lib\\
         xcopy SilicaEngine\\include dist\\include /s /i /y

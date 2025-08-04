@@ -1,35 +1,29 @@
 /**
  * @file fragment.glsl
- * @brief Basic fragment shader for SilicaEngine demonstrations
+ * @brief Basic fragment shader for SilicaEngine
+ * @author Tim Gatzke <post@tim-gatzke.de>
  * @version 1.0.0
  * 
- * This fragment shader provides basic lighting and color output
- * for rendered objects.
+ * Provides basic lighting and color output.
  */
 
 #version 460 core
 
-// ============================================================================
-// Input from Vertex Shader
-// ============================================================================
-in vec4 v_Color;          // Interpolated vertex color
-in vec3 v_Normal;         // World space normal
-in vec3 v_WorldPos;       // World space position
-in vec2 v_TexCoord;       // Texture coordinates
+// Input from vertex shader
+in vec4 v_Color;
+in vec3 v_Normal;
+in vec3 v_WorldPos;
+in vec2 v_TexCoord;
 
-// ============================================================================
 // Uniforms
-// ============================================================================
-uniform vec3 u_LightPos;       // Light position (optional)
-uniform vec3 u_LightColor;     // Light color (optional)
-uniform vec3 u_ViewPos;        // Camera position (optional)
-uniform float u_Ambient;      // Ambient light strength
-uniform sampler2D u_Texture;  // Diffuse texture (optional)
-uniform bool u_UseTexture;    // Whether to use texture
+uniform vec3 u_LightPos;
+uniform vec3 u_LightColor;
+uniform vec3 u_ViewPos;
+uniform float u_Ambient;
+uniform sampler2D u_Texture;
+uniform bool u_UseTexture;
 
-// ============================================================================
 // Output
-// ============================================================================
 layout (location = 0) out vec4 FragColor;
 
 void main() {

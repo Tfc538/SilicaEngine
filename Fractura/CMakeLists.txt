@@ -1,6 +1,7 @@
 # ============================================================================
 # Fractura - Example Game using SilicaEngine
 # CMakeLists.txt
+# Author: Tim Gatzke <post@tim-gatzke.de>
 # ============================================================================
 
 cmake_minimum_required(VERSION 3.16)

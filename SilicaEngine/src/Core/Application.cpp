@@ -1,6 +1,7 @@
 /**
  * @file Application.cpp
- * @brief Implementation of the Application class for SilicaEngine
+ * @brief Application class implementation
+ * @author Tim Gatzke <post@tim-gatzke.de>
  */
 
 #include "SilicaEngine/Core/Application.h"

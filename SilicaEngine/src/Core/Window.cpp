@@ -1,6 +1,7 @@
 /**
  * @file Window.cpp
- * @brief Implementation of the Window class for SilicaEngine
+ * @brief Window management implementation
+ * @author Tim Gatzke <post@tim-gatzke.de>
  */
 
 #include "SilicaEngine/Core/Window.h"

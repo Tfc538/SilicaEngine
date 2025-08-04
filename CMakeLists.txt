@@ -1,6 +1,7 @@
 # ============================================================================
 # Caelis - Professional C++ Multi-Project Repository
 # Root CMakeLists.txt
+# Author: Tim Gatzke <post@tim-gatzke.de>
 # ============================================================================
 
 cmake_minimum_required(VERSION 3.16)

@@ -1,6 +1,7 @@
 # ============================================================================
 # SilicaEngine - High-Performance Game Engine
 # CMakeLists.txt
+# Author: Tim Gatzke <post@tim-gatzke.de>
 # ============================================================================
 
 cmake_minimum_required(VERSION 3.16)
