@@ -120,10 +120,6 @@ if(NOT spdlog_FOUND)
     FetchContent_MakeAvailable(spdlog)
 endif()
 
-# GLAD - Set Python path explicitly
-set(Python_EXECUTABLE "C:/Users/hp/AppData/Local/Programs/Python/Python310/python.exe" CACHE FILEPATH "Path to Python executable")
-set(Python3_EXECUTABLE "C:/Users/hp/AppData/Local/Programs/Python/Python310/python.exe" CACHE FILEPATH "Path to Python3 executable")
-
 FetchContent_Declare(
     glad
     GIT_REPOSITORY https://github.com/Dav1dde/glad.git
