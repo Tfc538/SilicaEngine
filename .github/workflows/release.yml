@@ -21,78 +21,79 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
 
-    - name: Install Python dependencies
-      run: pip install jinja2
+      - name: Install Python dependencies
+        run: pip install jinja2
 
-    - name: Setup MSVC (Windows)
-      if: matrix.os == 'windows-latest'
-      uses: microsoft/setup-msbuild@v2
+      - name: Setup MSVC (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: microsoft/setup-msbuild@v2
 
-    - name: Setup Visual Studio Environment (Windows)
-      if: matrix.os == 'windows-latest'
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: x64
+      - name: Setup Visual Studio Environment (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
 
-    - name: Determine tag name
-      shell: bash
-      run: |
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          echo "TAG=${{ github.event.inputs.tag }}" >> $GITHUB_ENV
-        else
-          echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-        fi
+      - name: Determine tag name
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "TAG=${{ github.event.inputs.tag }}" >> $GITHUB_ENV
+          else
+            echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          fi
 
-    - name: Configure & Build
-      shell: bash
-      env:
-        CI: "1"
-      run: |
-        if [ "${RUNNER_OS}" = "Windows" ]; then
-          scripts/windows/setup-deps.bat
-          if [ -d "build" ]; then rm -rf build; fi
-          scripts/windows/build-release.bat
-        else
-          chmod +x scripts/linux/*.sh
-          scripts/linux/setup-deps.sh
-          rm -rf build
-          mkdir build && cd build
-          cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
-          cmake --build . --parallel
-          cd ..
-        fi
+      - name: Configure & Build
+        shell: bash
+        env:
+          CI: "1"
+        run: |
+          if [ "${RUNNER_OS}" = "Windows" ]; then
+            scripts/windows/setup-deps.bat
+            rm -rf build
+            scripts/windows/build-release.bat
+          else
+            chmod +x scripts/linux/*.sh
+            scripts/linux/setup-deps.sh
+            rm -rf build
+            mkdir build && cd build
+            cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
+            cmake --build . --parallel
+            cd ..
+          fi
 
-    - name: Package Artifacts
-      shell: bash
-      run: |
-        mkdir -p dist/bin dist/lib dist/include
+      - name: Package Artifacts
+        shell: bash
+        run: |
+          mkdir -p dist/bin dist/lib dist/include
 
-        if [ "${RUNNER_OS}" = "Windows" ]; then
-          cp build\\bin\\Fractura.exe dist\\bin\\
-          cp build\\lib\\SilicaEngine.lib dist\\lib\\
-          ZIP=Caelis-windows-${TAG}.zip
-          powershell -Command "Compress-Archive -Path dist -DestinationPath $ZIP"
-        else
-          cp build/bin/Fractura dist/bin/
-          cp build/lib/libSilicaEngine.a dist/lib/
-          ZIP=Caelis-linux-${TAG}.zip
-          zip -r $ZIP dist
-        fi
+          if [ "${RUNNER_OS}" = "Windows" ]; then
+            # Use forward-slashes so bash doesn't eat backslashes as escapes
+            cp build/bin/Fractura.exe dist/bin/
+            cp build/lib/SilicaEngine.lib dist/lib/
+            ZIP=Caelis-windows-${TAG}.zip
+            powershell -Command "Compress-Archive -Path dist -DestinationPath $ZIP"
+          else
+            cp build/bin/Fractura   dist/bin/
+            cp build/lib/libSilicaEngine.a dist/lib/
+            ZIP=Caelis-linux-${TAG}.zip
+            zip -r $ZIP dist
+          fi
 
-        echo "ZIP_NAME=$ZIP" >> $GITHUB_ENV
+          echo "ZIP_NAME=$ZIP" >> $GITHUB_ENV
 
-    - name: Publish Release Asset
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: ${{ env.TAG }}
-        files: ${{ env.ZIP_NAME }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          files: ${{ env.ZIP_NAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
