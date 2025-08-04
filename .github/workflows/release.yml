@@ -37,7 +37,6 @@ jobs:
           cmake --build build --config Release --parallel
         fi
 
-    # 5️⃣  Package results
     - name: Package artifacts
       shell: bash
       run: |
