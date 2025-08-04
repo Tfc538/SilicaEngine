@@ -1,23 +1,4 @@
-Here’s a strategic **feature roadmap** suggestion for future versions of SilicaEngine based on your v1.0.0 capabilities:
-
----
-
-## ✅ SilicaEngine v1.0.0 (Current)
-
-You already have:
-
-* Cross-platform windowing
-* Modern OpenGL rendering (4.6 Core)
-* Logging, application loop, matrix control, and basic shaders
-* Primitives: triangle, quad, cube, line, grid
-* Debug utilities and statistics
-* A demo game (Fractura)
-
-This is an extremely solid foundation.
-
----
-
-## 🧭 Recommended Roadmap
+# 🧭 Roadmap
 
 ### 🚀 v1.1.0 — Input & Asset Loading
 
@@ -137,16 +118,3 @@ This is an extremely solid foundation.
 * Asset importers (gltf, obj, fbx)
 * Deferred & PBR rendering
 * Full multi-threading support
-
----
-
-## 🔖 Version Naming Suggestion
-
-| Version | Codename       | Theme                   |
-| ------- | -------------- | ----------------------- |
-| v1.1.0  | **Touchstone** | Input & texture loading |
-| v1.2.0  | **Canvas**     | 2D & UI rendering       |
-| v1.3.0  | **Structure**  | Scene system            |
-| v1.4.0  | **Pulse**      | ECS and game logic      |
-| v1.5.0  | **CorePlay**   | Physics & audio         |
-| v2.0.0  | **Forge**      | In-editor tooling       |
