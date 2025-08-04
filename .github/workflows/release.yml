@@ -74,20 +74,19 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist/bin dist/lib dist/include
-
+  
           if [ "${RUNNER_OS}" = "Windows" ]; then
-            # Use forward-slashes so bash doesn't eat backslashes as escapes
-            cp build/bin/Fractura.exe dist/bin/
-            cp build/lib/SilicaEngine.lib dist/lib/
+            cp build/bin/Release/Fractura.exe dist/bin/
+            cp build/lib/Release/SilicaEngine.lib dist/lib/
             ZIP=Caelis-windows-${TAG}.zip
             powershell -Command "Compress-Archive -Path dist -DestinationPath $ZIP"
           else
-            cp build/bin/Fractura   dist/bin/
+            cp build/bin/Fractura      dist/bin/
             cp build/lib/libSilicaEngine.a dist/lib/
             ZIP=Caelis-linux-${TAG}.zip
             zip -r $ZIP dist
           fi
-
+  
           echo "ZIP_NAME=$ZIP" >> $GITHUB_ENV
 
       - name: Publish Release Asset
