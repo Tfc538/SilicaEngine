@@ -11,24 +11,27 @@ on:
         type: string
 
 jobs:
-  build:
+  build_and_release:
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
+    - name: 📥 Checkout Code
+      uses: actions/checkout@v4
 
-    - uses: actions/setup-python@v5
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v5
       with:
         python-version: '3.x'
 
-    - uses: microsoft/setup-msbuild@v1
+    - name: 🛠️ Setup MSVC (Windows)
       if: matrix.os == 'windows-latest'
+      uses: microsoft/setup-msbuild@v1
 
     - name: Determine tag name
-      id: tag
+      shell: bash
       run: |
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
           echo "TAG=${{ github.event.inputs.tag }}" >> $GITHUB_ENV
@@ -36,44 +39,52 @@ jobs:
           echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
         fi
 
-    - name: Configure & build
+    - name: Configure & Build
       shell: bash
       env:
         CI: "1"
       run: |
-        if [ "$RUNNER_OS" = "Windows" ]; then
+        if [ "${RUNNER_OS}" = "Windows" ]; then
           scripts/windows/setup-deps.bat
           scripts/windows/build-release.bat
         else
+          # Linux path
           chmod +x scripts/linux/*.sh
           scripts/linux/setup-deps.sh
+
+          # Clean slate
           rm -rf build
-          cmake -S . -B build -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --config Release --parallel
+          mkdir build && cd build
+
+          # Use Ninja on Ubuntu to avoid makefile generator issues
+          cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build . --parallel
+          cd ..
         fi
 
-    - name: Package artifacts
+    - name: Package Artifacts
       shell: bash
       run: |
         mkdir -p dist/bin dist/lib dist/include
 
-        if [ "$RUNNER_OS" = "Windows" ]; then
+        if [ "${RUNNER_OS}" = "Windows" ]; then
           cp build\\bin\\Fractura.exe dist\\bin\\
           cp build\\lib\\SilicaEngine.lib dist\\lib\\
-          zipName="Caelis-windows-${TAG}.zip"
-          powershell -Command "Compress-Archive -Path dist -DestinationPath $zipName"
+          ZIP=Caelis-windows-${TAG}.zip
+          powershell -Command "Compress-Archive -Path dist -DestinationPath $ZIP"
         else
           cp build/bin/Fractura dist/bin/
           cp build/lib/libSilicaEngine.a dist/lib/
-          zipName="Caelis-linux-${TAG}.zip"
-          zip -r $zipName dist
+          ZIP=Caelis-linux-${TAG}.zip
+          zip -r $ZIP dist
         fi
-        echo "ZIP_NAME=$zipName" >> $GITHUB_ENV
 
-    - name: Publish GitHub Release
+        echo "ZIP_NAME=$ZIP" >> $GITHUB_ENV
+
+    - name: Publish Release Asset
       uses: softprops/action-gh-release@v2
       with:
-        files: ${{ env.ZIP_NAME }}
         tag_name: ${{ env.TAG }}
+        files: ${{ env.ZIP_NAME }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
