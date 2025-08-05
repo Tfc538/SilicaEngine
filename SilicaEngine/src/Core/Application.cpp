@@ -78,9 +78,6 @@ namespace SilicaEngine {
             // Swap buffers
             m_Window->SwapBuffers();
             
-            // Small sleep to prevent CPU/GPU overload (0ms)
-            std::this_thread::sleep_for(std::chrono::milliseconds(0));
-            
             SE_PROFILE_END_FRAME();
         }
 
@@ -194,7 +191,11 @@ namespace SilicaEngine {
         OpenGLProperties openglProps;
         openglProps.majorVersion = m_Config.openglMajorVersion;
         openglProps.minorVersion = m_Config.openglMinorVersion;
-        openglProps.debugContext = true; // Enable debug context in debug builds
+#ifdef SILICA_DEBUG
+        openglProps.debugContext = true; // Enable debug context only in debug builds
+#else
+        openglProps.debugContext = false; // Disable debug context in release builds
+#endif
 
         // Create window
         m_Window = std::make_unique<Window>(windowProps, openglProps);

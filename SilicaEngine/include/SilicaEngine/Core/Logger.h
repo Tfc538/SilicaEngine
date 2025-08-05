@@ -48,15 +48,25 @@ namespace SilicaEngine {
 // Logging Macros
 
 // Engine logger macros
+#ifdef SE_DEBUG
 #define SE_TRACE(...)    SilicaEngine::Logger::GetEngineLogger()->trace(__VA_ARGS__)
 #define SE_INFO(...)     SilicaEngine::Logger::GetEngineLogger()->info(__VA_ARGS__)
+#else
+#define SE_TRACE(...)    do {} while(0)
+#define SE_INFO(...)     do {} while(0)
+#endif
 #define SE_WARN(...)     SilicaEngine::Logger::GetEngineLogger()->warn(__VA_ARGS__)
 #define SE_ERROR(...)    SilicaEngine::Logger::GetEngineLogger()->error(__VA_ARGS__)
 #define SE_CRITICAL(...) SilicaEngine::Logger::GetEngineLogger()->critical(__VA_ARGS__)
 
 // Application logger macros
+#ifdef SE_DEBUG
 #define SE_APP_TRACE(...)    SilicaEngine::Logger::GetAppLogger()->trace(__VA_ARGS__)
 #define SE_APP_INFO(...)     SilicaEngine::Logger::GetAppLogger()->info(__VA_ARGS__)
+#else
+#define SE_APP_TRACE(...)    do {} while(0)
+#define SE_APP_INFO(...)     do {} while(0)
+#endif
 #define SE_APP_WARN(...)     SilicaEngine::Logger::GetAppLogger()->warn(__VA_ARGS__)
 #define SE_APP_ERROR(...)    SilicaEngine::Logger::GetAppLogger()->error(__VA_ARGS__)
 #define SE_APP_CRITICAL(...) SilicaEngine::Logger::GetAppLogger()->critical(__VA_ARGS__)
